@@ -621,3 +621,90 @@ export default function AdminPage({ user, usernames, allUsers }: {
             View password reset requests
             <span className={`arrow ${isResetDropdownOpen ? 'open' : ''}`}>&gt;</span>
           </button>
+          <div className={`collapsible-content ${isResetDropdownOpen ? 'open' : ''}`}>
+            <div className="iframe-container">
+              <iframe 
+                src={resetSheetUrl}
+                title="Password Reset Responses"
+              >
+                Loading…
+              </iframe>
+            </div>
+          </div>
+        </div>
+        
+        {/* --- UPDATED PASSWORD MODAL (with animation) --- */}
+        {isModalOpen && (
+          <div className="modal-overlay" onClick={closeModal}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <button className="modal-close-btn" onClick={closeModal}>&times;</button>
+              
+              {/* --- Wrapper handles success fade-out and error shake --- */}
+              <div className={`
+                ${isUnlocking ? 'pin-pad-fade-out' : ''}
+                ${isError ? 'pin-pad-error' : ''}
+              `}>
+                <PinPad
+                  title="Enter Admin PIN"
+                  pinLength={ADMIN_PASSWORD.length}
+                  pin={modalPassword}
+                  setPin={setModalPassword}
+                  onPinComplete={handlePinComplete}
+                />
+                {/* --- Error message handles its own fade-out --- */}
+                {modalError && (
+                  <p 
+                    className={`error ${isErrorFading ? 'error-fade-out' : ''}`} 
+                    style={{ marginTop: '15px' }}
+                  >
+                    {modalError}
+                  </p>
+                )}
+              </div>
+
+            </div>
+          </div>
+        )}
+        {/* --- END NEW MODAL --- */}
+        
+      </div>
+    </div>
+  )
+}
+
+// --- SERVER SIDE PROPS (No changes) ---
+export const getServerSideProps = withIronSessionSsr(
+  async function ({ req, res }) {
+    const user = req.session.user
+
+    if (user === undefined || user.isAdmin !== true) {
+      res.setHeader('location', '/login')
+      res.statusCode = 302
+      res.end()
+      return {
+        props: {
+          user: { isLoggedIn: false, username: '', redirectUrl: '', isAdmin: false } as SessionData,
+          usernames: [],
+          allUsers: [],
+        },
+      }
+    }
+    
+    const allUsers = Array.from(validCredentials.entries()).map(([username, data]) => ({
+      username: username,
+      password: data.pwd,
+      redirect: data.redirect || DEFAULT_REDIRECT_URL
+    }));
+
+    const usernames = allUsers.map(u => u.username);
+
+    return {
+      props: { 
+        user: req.session.user,
+        usernames: usernames,
+        allUsers: allUsers,
+      },
+    }
+  },
+  sessionOptions
+)123456
