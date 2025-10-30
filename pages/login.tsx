@@ -25,7 +25,7 @@ function LoginForm() {
       }
 
       // 1. Admin Shortcut
-      if (event.key === '`') {
+      if (event.key === '\') {
         // --- THIS IS THE ADDED LINE ---
         console.warn('Admin shortcut key (`) pressed.');
         // -----------------------------
