@@ -6,6 +6,7 @@ export type SessionData = {
   username: string
   isLoggedIn: boolean
   redirectUrl: string
+  isAdmin?: boolean // <-- ADD THIS LINE
 }
 
 export const sessionOptions: IronSessionOptions = {
@@ -14,7 +15,7 @@ export const sessionOptions: IronSessionOptions = {
   // Create a new variable named 'SECRET_COOKIE_PASSWORD'
   // Use a strong, random password (e.g., from https://1password.com/password-generator/)
   password: process.env.SECRET_COOKIE_PASSWORD as string,
-  cookieName: 'my-app-session-cookie',
+  cookieName: 't8wFg4W2wbg0oRnoeGQqstczmRU2NsW1',
   cookieOptions: {
     // secure: true means the cookie is only sent over HTTPS
     // This is set to true automatically in production (on Vercel)
