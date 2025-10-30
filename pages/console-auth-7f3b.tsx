@@ -1,6 +1,6 @@
 // pages/console-auth-7f3b.tsx
-import React, { useState, useEffect, useRef } from 'react' // Import useRef
-import { useRouter } from 'next/router' // <-- 1. IMPORTED ROUTER
+import React, { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/router'
 import { withIronSessionSsr } from 'iron-session/next'
 import { sessionOptions, SessionData } from 'lib/session'
 import { validCredentials, DEFAULT_REDIRECT_URL } from 'lib/users'
@@ -12,16 +12,17 @@ type UserTableEntry = {
   redirect: string;
 }
 
-// --- UPDATED PIN PAD COMPONENT ---
+// --- PIN PAD COMPONENT ---
 type PinPadProps = {
   title: string;
   pinLength: number;
   pin: string;
   setPin: (pin: string) => void;
   onPinComplete: (pin: string) => void;
+  error: string; // Pass error to display
 };
 
-const PinPad: React.FC<PinPadProps> = ({ title, pinLength, pin, setPin, onPinComplete }) => {
+const PinPad: React.FC<PinPadProps> = ({ title, pinLength, pin, setPin, onPinComplete, error }) => {
   const containerRef = useRef<HTMLDivElement>(null); // Ref for keyboard focus
   
   // Effect to check for pin completion
@@ -46,22 +47,17 @@ const PinPad: React.FC<PinPadProps> = ({ title, pinLength, pin, setPin, onPinCom
     setPin(pin.slice(0, -1));
   };
 
-  // --- NEW: Keyboard Event Handler ---
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Prevent default browser behavior for Backspace
     if (e.key === 'Backspace') {
       e.preventDefault();
       handleDelete();
     }
-    
-    // Check if the key is a number
     if (e.key >= '0' && e.key <= '9') {
       e.preventDefault();
       handleNumClick(e.key);
     }
   };
 
-  // Create an array for the dots
   const dots = [];
   for (let i = 0; i < pinLength; i++) {
     dots.push(<div key={i} className={`dot ${i < pin.length ? 'filled' : ''}`}></div>);
@@ -78,9 +74,9 @@ const PinPad: React.FC<PinPadProps> = ({ title, pinLength, pin, setPin, onPinCom
     <div
       ref={containerRef}
       className="pin-pad-container"
-      tabIndex={-1} // Makes the div focusable
-      onKeyDown={handleKeyDown} // Add the keydown listener
-      style={{ outline: 'none' }} // Hide the focus ring
+      tabIndex={-1}
+      onKeyDown={handleKeyDown}
+      style={{ outline: 'none' }}
     >
       <h3 className="pin-title">{title}</h3>
       <div className="pin-dots">{dots}</div>
@@ -95,45 +91,39 @@ const PinPad: React.FC<PinPadProps> = ({ title, pinLength, pin, setPin, onPinCom
           return <button key={btn} type="button" className="pin-btn" onClick={() => handleNumClick(btn)}>{btn}</button>;
         })}
       </div>
+      {error && <p className="error" style={{ marginTop: '15px' }}>{error}</p>}
     </div>
   );
 };
 // --- END PIN PAD COMPONENT ---
 
 
-// Update the component's props to accept the new 'allUsers' list
+// --- MAIN ADMIN PAGE COMPONENT ---
 export default function AdminPage({ user, usernames, allUsers }: { 
   user: SessionData, 
   usernames: string[], 
   allUsers: UserTableEntry[] 
 }) {
-  const router = useRouter() // <-- 3. INITIALIZED ROUTER
+  const router = useRouter()
   const [impersonateError, setImpersonateError] = useState('')
   
-  // --- State for Modal and Table ---
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [isUnlocked, setIsUnlocked] = useState(false)
-  const [modalPassword, setModalPassword] = useState('') // This will now store the PIN
-  const [modalError, setModalError] = useState('')
-  const ADMIN_PASSWORD = '8007' // The password to unlock the table
+  // --- State for inline credentials ---
+  const [viewState, setViewState] = useState<'hidden' | 'pinpad' | 'unlocked'>('hidden');
+  const [pin, setPin] = useState('')
+  const [pinError, setPinError] = useState('')
+  const [isAnimating, setIsAnimating] = useState(false) // For animation state
+  const ADMIN_PASSWORD = '8007'
   
-  // --- NEW: State for unlock animation ---
-  const [isUnlocking, setIsUnlocking] = useState(false)
-  
-  // --- NEW: State for collapsible dropdown ---
   const [isResetDropdownOpen, setIsResetDropdownOpen] = useState(false);
-  
-  // --- NEW: Updated Google Sheet URL ---
   const resetSheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5tOhfvFBupEdGJavihf80w4AGpKw3PFuBmyH8u67kYNGIuGYiDZLpz7ZLni_vWU1RBucgPYKJN5PO/pubhtml?gid=456067184&single=true&widget=true&headers=false";
 
   
-  // This function handles the dropdown form
   async function handleImpersonateSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    setImpersonateError('') // Clear old errors
+    setImpersonateError('')
 
     const body = {
-      username: e.currentTarget.username.value, // This will be the selected value
+      username: e.currentTarget.username.value,
     }
 
     try {
@@ -155,68 +145,52 @@ export default function AdminPage({ user, usernames, allUsers }: {
     }
   }
 
-  // --- UPDATED: Handler for PIN Completion (with animation) ---
-  const handlePinComplete = (pin: string) => {
-    if (pin === ADMIN_PASSWORD) {
-      setModalError('')
-      setIsUnlocking(true) // Start the fade-out animation
+  // --- Handler for PIN Completion (with animation) ---
+  const handlePinComplete = (completedPin: string) => {
+    if (completedPin === ADMIN_PASSWORD) {
+      setPinError('')
+      setIsAnimating(true) // Start the cross-fade animation
       
-      // Wait for animation to finish, then swap content
+      // Wait for animation to finish, then set final state
       setTimeout(() => {
-        setIsUnlocked(true)   // Show the table
-        setIsModalOpen(false) // Hide the modal
-        setModalPassword('')  // Reset PIN
-        setIsUnlocking(false) // Reset animation state
-      }, 500); // This duration must match the 'fadeOut' animation
+        setViewState('unlocked');
+        setIsAnimating(false);
+        setPin(''); // Reset PIN
+      }, 500); // This duration must match the CSS animation
       
     } else {
-      setModalError('Wrong PIN. Try again.')
-      // Reset the PIN after a short delay so the user sees the error
+      setPinError('Wrong PIN. Try again.')
       setTimeout(() => {
-        setModalPassword('')
-        setModalError('')
+        setPin('')
+        setPinError('')
       }, 1000);
     }
   }
   
-  // --- UPDATED: Helper to clear state when closing modal ---
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setModalError('');
-    setModalPassword('');
-    setIsUnlocking(false); // <-- NEW: Reset animation state
+  // --- Handlers for showing/hiding credentials ---
+  const handleShowPinPad = () => {
+    setViewState('pinpad');
+  }
+
+  const handleHideCredentials = () => {
+    setViewState('hidden');
+    setPin('');
+    setPinError('');
   }
 
 
   return (
     <div>
-      {/* Styles for the page, form, table, and NEW MODAL/PINPAD */}
       <style jsx global>{`
-        /* --- NEW: Keyframe Animations --- */
+        /* --- Keyframe Animations --- */
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
         }
-        @keyframes zoomIn {
-          from { 
-            opacity: 0;
-            transform: scale(0.95);
-          }
-          to { 
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-        /* --- NEW: Fade in/out for credentials --- */
         @keyframes fadeOut {
           from { opacity: 1; }
           to { opacity: 0; }
         }
-        @keyframes fadeInTable {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        /* --- End Keyframes --- */
       
         body {
           font-family: Calibri, sans-serif;
@@ -227,7 +201,6 @@ export default function AdminPage({ user, usernames, allUsers }: {
           padding: 0 10px;
         }
         .login-form {
-          /* max-width: 400px; <-- Removed this for consistent width */
           margin: 40px auto;
           padding: 20px;
           border: 1px solid #ccc;
@@ -263,11 +236,10 @@ export default function AdminPage({ user, usernames, allUsers }: {
           background-color: #005bb5;
         }
         
-        /* --- NEW: Secondary button style for 'Hide' --- */
         .submit-btn.secondary {
           background-color: #e0e0e0;
           color: black;
-          margin-top: 15px; /* Add space above the hide button */
+          margin-top: 15px;
         }
         .submit-btn.secondary:hover {
           background-color: #c7c7c7;
@@ -278,7 +250,6 @@ export default function AdminPage({ user, usernames, allUsers }: {
           margin-top: 10px;
         }
         
-        /* --- UPDATED: Return Button Style --- */
         .return-btn {
           padding: 8px 16px;
           background-color: #0070f3;
@@ -287,7 +258,6 @@ export default function AdminPage({ user, usernames, allUsers }: {
           border-radius: 4px;
           font-size: 14px;
           cursor: pointer;
-          /* NEW: Positioned absolutely */
           position: absolute;
           right: 0;
           top: 0;
@@ -295,11 +265,10 @@ export default function AdminPage({ user, usernames, allUsers }: {
         .return-btn:hover {
           background-color: #005bb5;
         }
-        /* --- END RETURN BUTTON STYLE --- */
         
         .user-table {
           width: 100%;
-          margin-top: 40px;
+          /* margin-top: 40px; <-- Removed, now part of container */
           border-collapse: collapse;
         }
         .user-table th, .user-table td {
@@ -313,41 +282,6 @@ export default function AdminPage({ user, usernames, allUsers }: {
         }
         .user-table td:nth-child(3) {
           word-break: break-all;
-        }
-        
-        /* --- MODAL STYLES (with new animation) --- */
-        .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background-color: rgba(0, 0, 0, 0.5);
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          z-index: 1000;
-          animation: fadeIn 0.3s ease-out; /* <-- NEW */
-        }
-        .modal-content {
-          background-color: white;
-          padding: 20px 30px;
-          border-radius: 8px;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-          position: relative;
-          width: 300px;
-          text-align: center;
-          animation: zoomIn 0.3s ease-out; /* <-- NEW */
-        }
-        .modal-close-btn {
-          position: absolute;
-          top: 5px;
-          right: 10px;
-          background: none;
-          border: none;
-          font-size: 24px;
-          cursor: pointer;
-          color: #888;
         }
         
         /* --- PIN PAD STYLES --- */
@@ -383,13 +317,13 @@ export default function AdminPage({ user, usernames, allUsers }: {
           grid-template-columns: repeat(3, 1fr);
           gap: 15px;
           width: 100%;
-          max-width: 240px; /* Controls the max size of the pad */
+          max-width: 240px;
         }
         .pin-btn {
-          width: 60px; /* Fixed size for circle */
-          height: 60px; /* Fixed size for circle */
+          width: 60px;
+          height: 60px;
           font-size: 24px;
-          border-radius: 50%; /* Makes it round */
+          border-radius: 50%;
           border: 1px solid #ccc;
           background-color: #f0f0f0;
           cursor: pointer;
@@ -414,30 +348,63 @@ export default function AdminPage({ user, usernames, allUsers }: {
           height: 60px;
         }
         
-        /* --- NEW: Pinpad animation class --- */
-        .pin-pad-fade-out {
-          animation: fadeOut 0.5s ease-out forwards;
+        /* --- NEW: CREDENTIALS WRAPPER --- */
+        .credentials-section {
+          margin-top: 40px;
         }
         
-        /* --- NEW: Credentials table animation class --- */
-        .credentials-container {
-          animation: fadeInTable 0.8s ease-out;
-        }
-        
-        /* --- NEW COLLAPSIBLE DROPDOWN STYLES --- */
-        .collapsible-container {
-          /* max-width: 800px; <-- No longer needed, container handles it */
-          /* margin: 40px auto; <-- No longer needed, container handles it */
+        .credentials-wrapper {
+          position: relative; /* Container for absolute positioning */
+          padding: 20px;
           border: 1px solid #ccc;
           border-radius: 8px;
-          overflow: hidden; /* Important for the transition */
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          margin-top: 20px;
+          overflow: hidden; /* Hide anything that pokes out */
+        }
+        
+        /* --- NEW: Animation/Visibility classes --- */
+        .pinpad-view, .table-view {
+          transition: opacity 0.5s ease-in-out;
+        }
+        
+        .pinpad-view.fading-out {
+          opacity: 0;
+        }
+        .table-view.fading-in {
+          opacity: 1;
+        }
+        
+        .table-view {
+          opacity: 0; /* Hidden by default */
+          position: absolute;
+          top: 20px; /* Match padding */
+          left: 20px; /* Match padding */
+          right: 20px; /* Match padding */
+        }
+        
+        .table-view.visible {
+          opacity: 1;
+          position: relative; /* Back to normal flow */
+          top: 0;
+          left: 0;
+          right: 0;
+          animation: fadeIn 0.5s;
+        }
+        
+        /* --- COLLAPSIBLE DROPDOWN STYLES --- */
+        .collapsible-container {
+          border: 1px solid #ccc;
+          border-radius: 8px;
+          overflow: hidden;
+          margin-top: 40px; /* Give space from credentials */
         }
         .collapsible-toggle {
           background-color: #f2f2f2;
           border: none;
           width: 100%;
-          padding: 10px; /* Matching the submit-btn */
-          font-size: 16px; /* Matching the submit-btn */
+          padding: 10px;
+          font-size: 16px;
           font-weight: bold;
           cursor: pointer;
           display: flex;
@@ -450,7 +417,7 @@ export default function AdminPage({ user, usernames, allUsers }: {
         .arrow {
           font-size: 20px;
           transition: transform 0.3s ease-out;
-          margin-right: 10px; /* Add some spacing */
+          margin-right: 10px;
         }
         .arrow.open {
           transform: rotate(90deg);
@@ -458,39 +425,35 @@ export default function AdminPage({ user, usernames, allUsers }: {
         .collapsible-content {
           max-height: 0;
           overflow: hidden;
-          transition: max-height 0.5s ease-out; /* The slide transition */
+          transition: max-height 0.5s ease-out;
         }
         .collapsible-content.open {
-          max-height: 80vh; /* Set a max height for the open state */
+          max-height: 80vh;
           border-top: 1px solid #ccc;
         }
         .iframe-container {
           width: 100%;
-          height: 80vh; /* 80% of the viewport height */
-          border: 0; /* Remove border from container, it's on the content now */
+          height: 80vh;
+          border: 0;
         }
         .iframe-container iframe {
           width: 100%;
           height: 100%;
           border: 0;
         }
-        /* --- END NEW STYLES --- */
       `}</style>
       
       <div className="container">
       
-        {/* --- UPDATED: Centered Title --- */}
         <div style={{ position: 'relative', textAlign: 'center' }}>
           <h1 style={{ margin: 0, paddingBottom: '20px' }}>Admin Panel</h1>
           <button className="return-btn" onClick={() => router.push('/login')}>
             Return to Login
           </button>
         </div>
-        {/* --- END OF UPDATED TITLE --- */}
 
         <h2 style={{ textAlign: 'center', marginTop: 0 }}>Welcome, {user.username}!</h2>
         
-        {/* --- Impersonation Form --- */}
         <form className="login-form" onSubmit={handleImpersonateSubmit}>
           <div className="form-group">
             <label htmlFor="username">Select user to login as:</label>
@@ -509,51 +472,77 @@ export default function AdminPage({ user, usernames, allUsers }: {
           {impersonateError && <p className="error">{impersonateError}</p>}
         </form>
 
-        {/* --- UPDATED: Credentials Section (wrapper div, no maxWidth on button) --- */}
-        <div style={{ marginTop: '40px' }}>
-          {isUnlocked ? (
-            // --- USER TABLE (Visible only if unlocked) ---
-            <div className="credentials-container"> {/* <-- NEW: Animation wrapper */}
-              <h2 style={{ textAlign: 'center', marginTop: '40px' }}>All User Credentials</h2>
-              <table className="user-table">
-                <thead>
-                  <tr>
-                    <th>Username</th>
-                    <th>Password</th>
-                    <th>Redirect URL</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {allUsers.map((u) => (
-                    <tr key={u.username}>
-                      <td>{u.username}</td>
-                      <td>{u.password}</td>
-                      <td>{u.redirect}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {/* --- NEW: Credentials Section --- */}
+        <div className="credentials-section">
+          
+          {/* STATE 1: Show Button */}
+          {viewState === 'hidden' && (
+            <button className="submit-btn" onClick={handleShowPinPad}>
+              View User Credentials
+            </button>
+          )}
+
+          {/* STATE 2: Show PinPad */}
+          {viewState === 'pinpad' && (
+            <div className={`credentials-wrapper ${isAnimating ? 'fading-out' : ''}`}>
+              <div className={`pinpad-view ${isAnimating ? 'fading-out' : ''}`}>
+                <PinPad
+                  title="Enter Admin PIN"
+                  pinLength={ADMIN_PASSWORD.length}
+                  pin={pin}
+                  setPin={setPin}
+                  onPinComplete={handlePinComplete}
+                  error={pinError}
+                />
+              </div>
               
-              {/* --- NEW: Hide Credentials Button --- */}
-              <button 
-                className="submit-btn secondary" 
-                onClick={() => setIsUnlocked(false)}
-              >
-                Hide Credentials
-              </button>
-            </div>
-            
-          ) : (
-            // --- VIEW CREDENTIALS BUTTON (Visible only if locked) ---
-            <div style={{ marginBottom: '20px' }}> {/* Added wrapper for spacing */}
-              <button className="submit-btn" onClick={() => setIsModalOpen(true)}>
-                View User Credentials
-              </button>
+              {/* This is hidden but present for the cross-fade */}
+              <div className={`table-view ${isAnimating ? 'fading-in' : ''}`}>
+                <h2 style={{ textAlign: 'center', marginTop: 0 }}>All User Credentials</h2>
+                <table className="user-table">
+                  {/* ... table content ... */}
+                </table>
+              </div>
             </div>
           )}
+          
+          {/* STATE 3: Show Credentials Table */}
+          {viewState === 'unlocked' && (
+             <div className="credentials-wrapper">
+                <div className="table-view visible">
+                  <h2 style={{ textAlign: 'center', marginTop: 0 }}>All User Credentials</h2>
+                  <table className="user-table">
+                    <thead>
+                      <tr>
+                        <th>Username</th>
+                        <th>Password</th>
+                        <th>Redirect URL</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allUsers.map((u) => (
+                        <tr key={u.username}>
+                          <td>{u.username}</td>
+                          <td>{u.password}</td>
+                          <td>{u.redirect}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  
+                  <button 
+                    className="submit-btn secondary" 
+                    onClick={handleHideCredentials}
+                  >
+                    Hide Credentials
+                  </button>
+                </div>
+            </div>
+          )}
+          
         </div>
         
-        {/* --- NEW COLLAPSIBLE DROPDOWN --- */}
+        {/* --- COLLAPSIBLE DROPDOWN --- */}
         <div className="collapsible-container">
           <button 
             className="collapsible-toggle" 
@@ -573,29 +562,6 @@ export default function AdminPage({ user, usernames, allUsers }: {
             </div>
           </div>
         </div>
-        
-        {/* --- UPDATED PASSWORD MODAL (with animation) --- */}
-        {isModalOpen && (
-          <div className="modal-overlay" onClick={closeModal}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <button className="modal-close-btn" onClick={closeModal}>&times;</button>
-              
-              {/* --- NEW: Wrapper for pinpad fade-out animation --- */}
-              <div className={isUnlocking ? 'pin-pad-fade-out' : ''}>
-                <PinPad
-                  title="Enter Admin PIN"
-                  pinLength={ADMIN_PASSWORD.length}
-                  pin={modalPassword}
-                  setPin={setModalPassword}
-                  onPinComplete={handlePinComplete}
-                />
-                {modalError && <p className="error" style={{ marginTop: '15px' }}>{modalError}</p>}
-              </div>
-
-            </div>
-          </div>
-        )}
-        {/* --- END NEW MODAL --- */}
         
       </div>
     </div>
