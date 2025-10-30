@@ -9,11 +9,17 @@ import React, { useEffect } from 'react' // <-- NEW: Import useEffect
 export default function ProtectedPage({ user }: { user: SessionData }) {
   const router = useRouter() // <-- NEW: Initialize router
 
-  // --- NEW: Backtick key listener ---
+  // --- UPDATED: Backtick key listener ---
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === '`') {
-        router.push('/login');
+        // --- THIS LOGIC IS NEW ---
+        if (user.isAdmin === true) {
+          router.push('/admin-redirect'); // Go to admin redirect if user is admin
+        } else {
+          router.push('/login'); // Go to login for all other users
+        }
+        // -------------------------
       }
     }
 
@@ -24,7 +30,7 @@ export default function ProtectedPage({ user }: { user: SessionData }) {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [router]); // Add router to dependency array
+  }, [router, user.isAdmin]); // <-- Added user.isAdmin to dependency array
 
   // --- NEW: Button click handler ---
   const handleGoToPage = () => {
