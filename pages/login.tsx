@@ -1,5 +1,5 @@
 // pages/login.tsx
-import React, { useState, useEffect } from 'react' // <-- NEW: Imported useEffect
+import React, { useState, useEffect, useRef } from 'react' // <-- NEW: Imported useRef
 import { useRouter } from 'next/router'
 
 // This is a simple form component
@@ -7,13 +7,59 @@ function LoginForm() {
   const router = useRouter()
   const [errorMsg, setErrorMsg] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(false) // <-- ADDED for loading state
+  const [isLoading, setIsLoading] = useState(false) 
 
-  // --- NEW: Backtick key listener ---
+  // --- NEW: State for Easter Egg ---
+  const [keySequence, setKeySequence] = useState<string[]>([]);
+  // Use a ref for the timer to avoid re-renders
+  const keyTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // --- UPDATED: Key listener for both shortcuts ---
   useEffect(() => {
+    const easterEggSequence = ['m', 't', 'b'];
+
     function handleKeyDown(event: KeyboardEvent) {
+      // Don't track keys if user is typing in a form
+      if (event.target instanceof HTMLInputElement) {
+        return;
+      }
+
+      // 1. Admin Shortcut
       if (event.key === '`') {
-        router.push('/admin');
+        router.push('/admin-redirect'); // <-- UPDATED: Go to new redirect page
+      }
+
+      // 2. Easter Egg Shortcut
+      // Clear the previous 5-second timer
+      if (keyTimerRef.current) {
+        clearTimeout(keyTimerRef.current);
+      }
+
+      const key = event.key.toLowerCase();
+      
+      // Check if the key is the *next* one in the sequence
+      let newSequence = [...keySequence];
+      if (easterEggSequence[newSequence.length] === key) {
+        newSequence.push(key);
+      } else if (key === 'm') {
+        // If it's the wrong key, but it's 'm', start over
+        newSequence = ['m'];
+      } else {
+        // Any other key resets the sequence
+        newSequence = [];
+      }
+
+      setKeySequence(newSequence);
+
+      // Check for success
+      if (newSequence.join('') === 'mtb') {
+        router.push('/easter-egg');
+        setKeySequence([]); // Reset
+      } else {
+        // Set a 5-second timer to reset the sequence
+        keyTimerRef.current = setTimeout(() => {
+          setKeySequence([]);
+        }, 5000); // 5 seconds
       }
     }
 
@@ -23,8 +69,11 @@ function LoginForm() {
     // Clean up event listener on component unmount
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
+      if (keyTimerRef.current) {
+        clearTimeout(keyTimerRef.current);
+      }
     };
-  }, [router]); // Add router to dependency array
+  }, [router, keySequence]); // Add keySequence to dependency array
 
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
