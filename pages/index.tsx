@@ -12,15 +12,15 @@ export default function ProtectedPage({ user }: { user: SessionData }) {
   // --- UPDATED: Backtick key listener ---
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === '`') {
-        // --- THIS LOGIC IS NEW ---
+      // --- THIS LOGIC IS MODIFIED ---
+      if (event.ctrlKey && event.key === '\\') {
         if (user.isAdmin === true) {
           router.push('/admin-redirect'); // Go to admin redirect if user is admin
         } else {
           router.push('/login'); // Go to login for all other users
         }
-        // -------------------------
       }
+      // -------------------------
     }
 
     // Add event listener
@@ -141,4 +141,3 @@ export const getServerSideProps = withIronSessionSsr(
   },
   sessionOptions
 )
-
