@@ -21,27 +21,27 @@ type PinPadProps = {
   onPinComplete: (pin: string) => void;
 };
 
+// --- Reverted to original PinPad component ---
 const PinPad: React.FC<PinPadProps> = ({ title, pinLength, pin, setPin, onPinComplete }) => {
   const containerRef = useRef<HTMLDivElement>(null); // Ref for keyboard focus
   
+  // Effect to check for pin completion
+  useEffect(() => {
+    if (pin.length === pinLength) {
+      onPinComplete(pin);
+    }
+  }, [pin, pinLength, onPinComplete]);
+
   // Effect to auto-focus the container for keyboard input when it appears
   useEffect(() => {
     containerRef.current?.focus();
   }, []);
 
-  // --- MODIFICATION: handleNumClick now calls onPinComplete ---
   const handleNumClick = (num: string) => {
     if (pin.length < pinLength) {
-      const newPin = pin + num; // Create the new pin
-      setPin(newPin); // Set the state
-      
-      // Check if this new pin is the final one
-      if (newPin.length === pinLength) {
-        onPinComplete(newPin); // Call this IMMEDIATELY
-      }
+      setPin(pin + num);
     }
   };
-  // --- END MODIFICATION ---
 
   const handleDelete = () => {
     setPin(pin.slice(0, -1));
@@ -118,17 +118,10 @@ export default function AdminPage({ user, usernames, allUsers }: {
   const [modalError, setModalError] = useState('')
   const ADMIN_PASSWORD = '8007' // The password to unlock the table
   
-  // --- NEW: State for unlock animation ---
-  const [isUnlocking, setIsUnlocking] = useState(false)
-
-  // --- NEW: State for shake/error animations ---
-  const [isError, setIsError] = useState(false)
-  const [isErrorFading, setIsErrorFading] = useState(false)
-  
-  // --- NEW: State for collapsible dropdown ---
+  // --- State for collapsible dropdown ---
   const [isResetDropdownOpen, setIsResetDropdownOpen] = useState(false);
   
-  // --- NEW: Updated Google Sheet URL ---
+  // --- Updated Google Sheet URL ---
   const resetSheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5tOhfvFBupEdGJavihf80w4AGpKw3PFuBmyH8u67kYNGIuGYiDZLpz7ZLni_vWU1RBucgPYKJN5PO/pubhtml?gid=456067184&single=true&widget=true&headers=false";
 
   
@@ -160,56 +153,31 @@ export default function AdminPage({ user, usernames, allUsers }: {
     }
   }
 
-  // --- UPDATED: Handler for PIN Completion (with shake/fade animations) ---
+  // --- MODIFICATION: Removed all animation logic ---
   const handlePinComplete = (pin: string) => {
-    // Prevent multiple submissions
-    if (isUnlocking || isError) return;
-
     if (pin === ADMIN_PASSWORD) {
+      // --- SUCCESS: Runs immediately ---
       setModalError('')
-      setIsUnlocking(true) // Start the fade-out animation
-      
-      // Wait for animation to finish, then swap content
-      setTimeout(() => {
-        setIsUnlocked(true)   // Show the table
-        setIsModalOpen(false) // Hide the modal
-        setModalPassword('')  // Reset PIN
-        setIsUnlocking(false) // Reset animation state
-      }, 600); // This duration must be > 'fadeOut' animation (500ms)
+      setIsUnlocked(true)   // Show the table
+      setIsModalOpen(false) // Hide the modal
+      setModalPassword('')  // Reset PIN
       
     } else {
-      // 1. Set error message and trigger shake
+      // --- ERROR: Runs immediately ---
       setModalError('Wrong PIN. Try again.')
-      setIsError(true)
-
-      // 2. After shake animation (500ms), remove shake class
-      setTimeout(() => {
-        setIsError(false)
-      }, 500); // Must match shake animation duration
-
-      // 3. After a delay, start fading out the error message
-      setTimeout(() => {
-        setIsErrorFading(true)
-      }, 1500); // Start fading error after 1.5s
-
-      // 4. After fade out (500ms), reset everything
+      // Reset the PIN after a short delay so the user sees the error
       setTimeout(() => {
         setModalPassword('')
         setModalError('')
-        setIsErrorFading(false)
-      }, 2000); // 1500ms + 500ms fade
+      }, 1000);
     }
   }
   
-  // --- UPDATED: Helper to clear state when closing modal ---
+  // --- Helper to clear state when closing modal ---
   const closeModal = () => {
     setIsModalOpen(false);
     setModalError('');
     setModalPassword('');
-    setIsUnlocking(false);
-    // --- NEW: Reset error states on close ---
-    setIsError(false);
-    setIsErrorFading(false);
   }
 
 
@@ -217,7 +185,7 @@ export default function AdminPage({ user, usernames, allUsers }: {
     <div>
       {/* Styles for the page, form, table, and NEW MODAL/PINPAD */}
       <style jsx global>{`
-        /* --- NEW: Keyframe Animations --- */
+        /* --- Keyframe Animations --- */
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
@@ -232,22 +200,12 @@ export default function AdminPage({ user, usernames, allUsers }: {
             transform: scale(1);
           }
         }
-        /* --- NEW: Fade in/out for credentials --- */
-        @keyframes fadeOut {
-          from { opacity: 1; }
-          to { opacity: 0; }
-        }
+        
+        /* --- MODIFICATION: Removed fadeOut and shake keyframes --- */
+        
         @keyframes fadeInTable {
           from { opacity: 0; }
           to { opacity: 1; }
-        }
-
-        /* --- NEW: Shake animation for pin error --- */
-        @keyframes shake {
-          10%, 90% { transform: translateX(-1px); }
-          20%, 80% { transform: translateX(2px); }
-          30%, 50%, 70% { transform: translateX(-4px); }
-          40%, 60% { transform: translateX(4px); }
         }
         /* --- End Keyframes --- */
       
@@ -447,20 +405,8 @@ export default function AdminPage({ user, usernames, allUsers }: {
           height: 60px;
         }
         
-        /* --- NEW: Pinpad animation class --- */
-        .pin-pad-fade-out {
-          animation: fadeOut 0.5s ease-out forwards;
-        }
-        
-        /* --- NEW: Pinpad error shake class --- */
-        .pin-pad-error {
-          animation: shake 0.5s ease-in-out;
-        }
-
-        /* --- NEW: Error message fade out --- */
-        .error-fade-out {
-           animation: fadeOut 0.5s ease-out forwards;
-        }
+        /* --- MODIFICATION: Removed animation classes --- */
+        /* .pin-pad-fade-out, .pin-pad-error, .error-fade-out removed */
         
         /* --- NEW: Credentials table animation class --- */
         .credentials-container {
@@ -568,7 +514,7 @@ export default function AdminPage({ user, usernames, allUsers }: {
                   </tr>
                 </thead>
                 <tbody>
-                  {allUsers.map((u) => (
+                  {allUsers..map((u) => (
                     <tr key={u.username}>
                       <td>{u.username}</td>
                       <td>{u.password}</td>
@@ -628,11 +574,8 @@ export default function AdminPage({ user, usernames, allUsers }: {
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               <button className="modal-close-btn" onClick={closeModal}>&times;</button>
               
-              {/* --- Wrapper handles success fade-out and error shake --- */}
-              <div className={`
-                ${isUnlocking ? 'pin-pad-fade-out' : ''}
-                ${isError ? 'pin-pad-error' : ''}
-              `}>
+              {/* --- MODIFICATION: Removed all animation classes --- */}
+              <div>
                 <PinPad
                   title="Enter Admin PIN"
                   pinLength={ADMIN_PASSWORD.length}
@@ -640,15 +583,7 @@ export default function AdminPage({ user, usernames, allUsers }: {
                   setPin={setModalPassword}
                   onPinComplete={handlePinComplete}
                 />
-                {/* --- Error message handles its own fade-out --- */}
-                {modalError && (
-                  <p 
-                    className={`error ${isErrorFading ? 'error-fade-out' : ''}`} 
-                    style={{ marginTop: '15px' }}
-                  >
-                    {modalError}
-                  </p>
-                )}
+                {modalError && <p className="error" style={{ marginTop: '15px' }}>{modalError}</p>}
               </div>
 
             </div>
