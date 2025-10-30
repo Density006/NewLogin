@@ -38,7 +38,7 @@ export const validCredentials = new Map<string, UserCredentials>([
   }],
   ['Jamesmann', { pwd: 'wisehelp88' }],
   ['Duke', { pwd: 'danby', redirect: DISALLOWED_REDIRECT_URL }],
-  ['add user', { pwd: '', redirect: GITHUB_REDIRECT_URL }],
+  ['add user', { pwd: ' ', redirect: GITHUB_REDIRECT_URL }],
   ['new1', { pwd: 'coldnewt29', redirect: TEDDBLUE }],
   ['JamesH', { pwd: '  ' }],
   ['Keaton', { pwd: 'keaton' }],
