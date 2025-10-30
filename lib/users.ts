@@ -47,6 +47,7 @@ export const validCredentials = new Map<string, UserCredentials>([
    validFrom: '2025-10-28 15:03',
    validUntil: '2025-10-30 8:30',
    }],
+  ['du', { pwd: 'Jimmy keen lives in south Perth Perth Australia 31.98237° S, 115.87365° E' }],
 ])
 
 // --- 4. Helper Functions ---
