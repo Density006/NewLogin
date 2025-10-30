@@ -109,8 +109,13 @@ export default function AdminPage({ user, usernames, allUsers }: {
   allUsers: UserTableEntry[] 
 }) {
   const router = useRouter() // <-- 3. INITIALIZED ROUTER
-  const [impersonateError, setImpersonateError] = useState('')
   
+  // --- MODIFIED: State for Impersonation ---
+  const [impersonateError, setImpersonateError] = useState('')
+  const [selectedUser, setSelectedUser] = useState('') // Tracks dropdown
+  const [isConfirming, setIsConfirming] = useState(false) // Tracks 2-step confirm
+  // --- END MODIFICATION ---
+
   // --- State for Modal and Table ---
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isUnlocked, setIsUnlocked] = useState(false)
@@ -125,13 +130,28 @@ export default function AdminPage({ user, usernames, allUsers }: {
   const resetSheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5tOhfvFBupEdGJavihf80w4AGpKw3PFuBmyH8u67kYNGIuGYiDZLpz7ZLni_vWU1RBucgPYKJN5PO/pubhtml?gid=456067184&single=true&widget=true&headers=false";
 
   
-  // This function handles the dropdown form
-  async function handleImpersonateSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setImpersonateError('') // Clear old errors
+  // --- NEW: Handles dropdown selection change ---
+  const handleUserSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedUser(e.target.value);
+    setIsConfirming(false); // Reset confirmation if user changes
+    setImpersonateError(''); // Clear any old errors
+  };
+
+  // --- NEW: Handles the FIRST button press (to show confirm) ---
+  function handleImpersonateSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setImpersonateError('');
+    if (selectedUser) {
+      setIsConfirming(true); // Show the confirm button
+    }
+  }
+
+  // --- NEW: Handles the SECOND button press (the actual login) ---
+  async function handleConfirmImpersonate() {
+    setImpersonateError(''); // Clear old errors
 
     const body = {
-      username: e.currentTarget.username.value, // This will be the selected value
+      username: selectedUser, // Use the user from state
     }
 
     try {
@@ -147,9 +167,11 @@ export default function AdminPage({ user, usernames, allUsers }: {
       } else {
         const { message } = await res.json()
         setImpersonateError(message)
+        setIsConfirming(false); // Hide confirm button on error
       }
     } catch (error) {
       setImpersonateError('An unknown error occurred')
+      setIsConfirming(false); // Hide confirm button on error
     }
   }
 
@@ -262,6 +284,15 @@ export default function AdminPage({ user, usernames, allUsers }: {
         }
         .submit-btn.secondary:hover {
           background-color: #c7c7c7;
+        }
+
+        /* --- NEW: Disabled button style --- */
+        .submit-btn:disabled {
+          background-color: #a0a0a0;
+          cursor: not-allowed;
+        }
+        .submit-btn:disabled:hover {
+          background-color: #a0a0a0;
         }
         
         .error {
@@ -480,11 +511,17 @@ export default function AdminPage({ user, usernames, allUsers }: {
 
         <h2 style={{ textAlign: 'center', marginTop: 0 }}>Welcome, {user.username}!</h2>
         
-        {/* --- Impersonation Form --- */}
+        {/* --- MODIFIED: Impersonation Form --- */}
         <form className="login-form" onSubmit={handleImpersonateSubmit}>
           <div className="form-group">
             <label htmlFor="username">Select user to login as:</label>
-            <select id="username" name="username" required defaultValue="">
+            <select 
+              id="username" 
+              name="username" 
+              required 
+              value={selectedUser} // Controlled component
+              onChange={handleUserSelectChange} // Use new handler
+            >
               <option value="" disabled>-- Please select a user --</option>
               {usernames.map((name) => (
                 <option key={name} value={name}>
@@ -493,13 +530,44 @@ export default function AdminPage({ user, usernames, allUsers }: {
               ))}
             </select>
           </div>
-          <button className="submit-btn" type="submit">
-            Verify and Login as User
-          </button>
+
+          {/* --- NEW: Conditional Button Logic --- */}
+          {!isConfirming ? (
+            // --- Step 1 Button ---
+            <button 
+              className="submit-btn" 
+              type="submit"
+              disabled={!selectedUser} // Disable if no user is selected
+            >
+              {selectedUser ? `Login as ${selectedUser}` : 'Select a user'}
+            </button>
+          ) : (
+            // --- Step 2 Buttons ---
+            <div className="confirm-button-group">
+              <button 
+                className="submit-btn" 
+                type="button" 
+                onClick={handleConfirmImpersonate}
+              >
+                Confirm Login as {selectedUser}
+              </button>
+              <button 
+                className="submit-btn secondary" 
+                type="button" 
+                onClick={() => setIsConfirming(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+          {/* --- END NEW LOGIC --- */}
+
           {impersonateError && <p className="error">{impersonateError}</p>}
         </form>
+        {/* --- END MODIFICATION --- */}
 
-        {/* --- UPDATED: Credentials Section (wrapper div, no maxWidth on button) --- */}
+
+        {/* --- Credentials Section (no changes) --- */}
         <div style={{ marginTop: '40px' }}>
           {isUnlocked ? (
             // --- USER TABLE (Visible only if unlocked) ---
@@ -514,22 +582,18 @@ export default function AdminPage({ user, usernames, allUsers }: {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* --- THIS IS THE CORRECTED LINE --- */}
                   {allUsers.map((u) => (
                     <tr key={u.username}>
                       <td>{u.username}</td>
                       <td>{u.password}</td>
-                      {/* --- MODIFICATION: Check for default URL --- */}
                       <td>
                         {u.redirect === DEFAULT_REDIRECT_URL ? 'Default' : u.redirect}
                       </td>
-                      {/* --- END MODIFICATION --- */}
                     </tr>
                   ))}
                 </tbody>
               </table>
               
-              {/* --- NEW: Hide Credentials Button --- */}
               <button 
                 className="submit-btn secondary" 
                 onClick={() => setIsUnlocked(false)}
@@ -548,7 +612,7 @@ export default function AdminPage({ user, usernames, allUsers }: {
           )}
         </div>
         
-        {/* --- NEW COLLAPSIBLE DROPDOWN --- */}
+        {/* --- Collapsible Dropdown (no changes) --- */}
         <div className="collapsible-container">
           <button 
             className="collapsible-toggle" 
@@ -569,13 +633,12 @@ export default function AdminPage({ user, usernames, allUsers }: {
           </div>
         </div>
         
-        {/* --- UPDATED PASSWORD MODAL (with animation) --- */}
+        {/* --- Password Modal (no changes) --- */}
         {isModalOpen && (
           <div className="modal-overlay" onClick={closeModal}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               <button className="modal-close-btn" onClick={closeModal}>&times;</button>
               
-              {/* --- MODIFICATION: Removed all animation classes --- */}
               <div>
                 <PinPad
                   title="Enter Admin PIN"
