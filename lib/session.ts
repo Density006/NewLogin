@@ -5,8 +5,9 @@ import type { IronSessionOptions } from 'iron-session'
 export type SessionData = {
   username: string
   isLoggedIn: boolean
-  redirectUrl: string
-  isAdmin?: boolean // <-- ADD THIS LINE
+  redirectUrl: string      // Will be '/select-site' if multiple
+  redirectSites?: string[] // <-- ADDED: The list of sites for the selection page
+  isAdmin?: boolean
 }
 
 export const sessionOptions: IronSessionOptions = {
