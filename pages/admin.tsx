@@ -2,9 +2,10 @@
 import React, { useState } from 'react'
 import { withIronSessionSsr } from 'iron-session/next'
 import { sessionOptions, SessionData } from 'lib/session'
+import { validCredentials } from 'lib/users' // <-- Import user list
 
-// This page is protected. It checks if the user is an admin.
-export default function AdminPage({ user }: { user: SessionData }) {
+// We add a 'usernames' prop to our page
+export default function AdminPage({ user, usernames }: { user: SessionData, usernames: string[] }) {
   const [errorMsg, setErrorMsg] = useState('')
   
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -12,7 +13,7 @@ export default function AdminPage({ user }: { user: SessionData }) {
     setErrorMsg('') // Clear old errors
 
     const body = {
-      username: e.currentTarget.username.value,
+      username: e.currentTarget.username.value, // This will be the selected value
     }
 
     try {
@@ -42,7 +43,6 @@ export default function AdminPage({ user }: { user: SessionData }) {
         body {
           font-family: Calibri, sans-serif;
         }
-
         .login-form {
           max-width: 400px;
           margin: 40px auto;
@@ -59,8 +59,9 @@ export default function AdminPage({ user }: { user: SessionData }) {
           margin-bottom: 5px;
           font-weight: bold;
         }
-        .form-group input {
-          width: 95%;
+        /* Apply styles to select as well */
+        .form-group input, .form-group select {
+          width: 100%; /* Changed from 95% */
           padding: 8px;
           font-size: 16px;
           border: 1px solid #ddd;
@@ -90,11 +91,23 @@ export default function AdminPage({ user }: { user: SessionData }) {
       
       <form className="login-form" onSubmit={handleSubmit}>
         <div className="form-group">
-          <label htmlFor="username">Enter username to login as:</label>
-          <input id="username" name="username" type="text" required />
+          <label htmlFor="username">Select user to login as:</label>
+          
+          {/* --- THIS IS THE NEW DROPDOWN --- */}
+          <select id="username" name="username" required>
+            <option value="" disabled>-- Please select a user --</option>
+            {/* Map over the usernames prop to create options */}
+            {usernames.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+          {/* --- END OF DROPDOWN --- */}
+
         </div>
         <button className="submit-btn" type="submit">
-          Login as User
+          Verify and Login as User
         </button>
         {errorMsg && <p className="error">{errorMsg}</p>}
       </form>
@@ -115,13 +128,20 @@ export const getServerSideProps = withIronSessionSsr(
       return {
         props: {
           user: { isLoggedIn: false, username: '', redirectUrl: '', isAdmin: false } as SessionData,
+          usernames: [], // Pass empty array
         },
       }
     }
+    
+    // Get all usernames from the map
+    const usernames = Array.from(validCredentials.keys());
 
-    // If user is an admin, pass their info to the page
+    // If user is an admin, pass their info and the list of usernames to the page
     return {
-      props: { user: req.session.user },
+      props: { 
+        user: req.session.user,
+        usernames: usernames, // Pass the list of names
+      },
     }
   },
   sessionOptions
