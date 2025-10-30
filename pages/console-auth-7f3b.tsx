@@ -514,7 +514,8 @@ export default function AdminPage({ user, usernames, allUsers }: {
                   </tr>
                 </thead>
                 <tbody>
-                  {allUsers..map((u) => (
+                  {/* --- THIS IS THE CORRECTED LINE --- */}
+                  {allUsers.map((u) => (
                     <tr key={u.username}>
                       <td>{u.username}</td>
                       <td>{u.password}</td>
