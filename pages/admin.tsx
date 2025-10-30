@@ -120,9 +120,10 @@ export default function AdminPage({ user, usernames, allUsers }: {
   // --- NEW: State for collapsible dropdown ---
   const [isResetDropdownOpen, setIsResetDropdownOpen] = useState(false);
   
-  // --- NEW: Google Sheet URL ---
-  const resetSheetUrl = "https://docs.google.com/spreadsheets/d/1N6tCWMVNG5Hz0DJa2h9KmsVMj-Gh_4BnMKKOAyjSR3I/edit?usp=sharing&embedded=true";
+  // --- NEW: Updated Google Sheet URL ---
+  const resetSheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5tOhfvFBupEdGJavihf80w4AGpKw3PFuBmyH8u67kYNGIuGYiDZLpz7ZLni_vWU1RBucgPYKJN5PO/pubhtml?gid=456067184&single=true&widget=true&headers=false";
 
+  
   // This function handles the dropdown form
   async function handleImpersonateSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -246,7 +247,7 @@ export default function AdminPage({ user, usernames, allUsers }: {
           margin-top: 10px;
         }
         
-        /* --- 2. ADDED RETURN BUTTON STYLE --- */
+        /* --- UPDATED: Return Button Style --- */
         .return-btn {
           padding: 8px 16px;
           background-color: #0070f3;
@@ -255,7 +256,10 @@ export default function AdminPage({ user, usernames, allUsers }: {
           border-radius: 4px;
           font-size: 14px;
           cursor: pointer;
-          margin-bottom: 20px;
+          /* NEW: Positioned absolutely */
+          position: absolute;
+          right: 0;
+          top: 0;
         }
         .return-btn:hover {
           background-color: #005bb5;
@@ -381,8 +385,8 @@ export default function AdminPage({ user, usernames, allUsers }: {
         
         /* --- NEW COLLAPSIBLE DROPDOWN STYLES --- */
         .collapsible-container {
-          max-width: 800px;
-          margin: 40px auto;
+          /* max-width: 800px; <-- No longer needed, container handles it */
+          /* margin: 40px auto; <-- No longer needed, container handles it */
           border: 1px solid #ccc;
           border-radius: 8px;
           overflow: hidden; /* Important for the transition */
@@ -391,8 +395,8 @@ export default function AdminPage({ user, usernames, allUsers }: {
           background-color: #f2f2f2;
           border: none;
           width: 100%;
-          padding: 15px 20px;
-          font-size: 18px;
+          padding: 10px; /* Matching the submit-btn */
+          font-size: 16px; /* Matching the submit-btn */
           font-weight: bold;
           cursor: pointer;
           display: flex;
@@ -405,6 +409,7 @@ export default function AdminPage({ user, usernames, allUsers }: {
         .arrow {
           font-size: 20px;
           transition: transform 0.3s ease-out;
+          margin-right: 10px; /* Add some spacing */
         }
         .arrow.open {
           transform: rotate(90deg);
@@ -433,14 +438,14 @@ export default function AdminPage({ user, usernames, allUsers }: {
       
       <div className="container">
       
-        {/* --- 3. ADDED BUTTON AND WRAPPER --- */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <h1 style={{ textAlign: 'center', flexGrow: 1, margin: 0, paddingBottom: '20px' }}>Admin Panel</h1>
+        {/* --- UPDATED: Centered Title --- */}
+        <div style={{ position: 'relative', textAlign: 'center' }}>
+          <h1 style={{ margin: 0, paddingBottom: '20px' }}>Admin Panel</h1>
           <button className="return-btn" onClick={() => router.push('/login')}>
             Return to Login
           </button>
         </div>
-        {/* --- END OF ADDED BUTTON --- */}
+        {/* --- END OF UPDATED TITLE --- */}
 
         <h2 style={{ textAlign: 'center', marginTop: 0 }}>Welcome, {user.username}!</h2>
         
@@ -463,38 +468,40 @@ export default function AdminPage({ user, usernames, allUsers }: {
           {impersonateError && <p className="error">{impersonateError}</p>}
         </form>
 
-        {/* --- This section is now conditional --- */}
-        {isUnlocked ? (
-          // --- USER TABLE (Visible only if unlocked) ---
-          <>
-            <h2 style={{ textAlign: 'center', marginTop: '40px' }}>All User Credentials</h2>
-            <table className="user-table">
-              <thead>
-                <tr>
-                  <th>Username</th>
-                  <th>Password</th>
-                  <th>Redirect URL</th>
-                </tr>
-              </thead>
-              <tbody>
-                {allUsers.map((u) => (
-                  <tr key={u.username}>
-                    <td>{u.username}</td>
-                    <td>{u.password}</td>
-                    <td>{u.redirect}</td>
+        {/* --- UPDATED: Credentials Section (wrapper div, no maxWidth on button) --- */}
+        <div style={{ marginTop: '40px' }}>
+          {isUnlocked ? (
+            // --- USER TABLE (Visible only if unlocked) ---
+            <>
+              <h2 style={{ textAlign: 'center', marginTop: '40px' }}>All User Credentials</h2>
+              <table className="user-table">
+                <thead>
+                  <tr>
+                    <th>Username</th>
+                    <th>Password</th>
+                    <th>Redirect URL</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </>
-        ) : (
-          // --- VIEW CREDENTIALS BUTTON (Visible only if locked) ---
-          <div style={{ textAlign: 'center', marginTop: '20px' }}>
-            <button className="submit-btn" style={{ maxWidth: '400px' }} onClick={() => setIsModalOpen(true)}>
-              View User Credentials
-            </button>
-          </div>
-        )}
+                </thead>
+                <tbody>
+                  {allUsers.map((u) => (
+                    <tr key={u.username}>
+                      <td>{u.username}</td>
+                      <td>{u.password}</td>
+                      <td>{u.redirect}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          ) : (
+            // --- VIEW CREDENTIALS BUTTON (Visible only if locked) ---
+            <div style={{ marginBottom: '20px' }}> {/* Added wrapper for spacing */}
+              <button className="submit-btn" onClick={() => setIsModalOpen(true)}>
+                View User Credentials
+              </button>
+            </div>
+          )}
+        </div>
         
         {/* --- NEW COLLAPSIBLE DROPDOWN --- */}
         <div className="collapsible-container">
@@ -517,16 +524,12 @@ export default function AdminPage({ user, usernames, allUsers }: {
           </div>
         </div>
         
-        {/* --- UPDATED PASSWORD MODAL --- */}
+        {/* --- UPDATED PASSWORD MODAL (with animation) --- */}
         {isModalOpen && (
           <div className="modal-overlay" onClick={closeModal}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               <button className="modal-close-btn" onClick={closeModal}>&times;</button>
               
-              {/* This PinPad component is now rendered.
-                It will be focused automatically due to its internal useEffect.
-                It will listen for keyboard input due to its onKeyDown handler.
-              */}
               <PinPad
                 title="Enter Admin PIN"
                 pinLength={ADMIN_PASSWORD.length}
