@@ -98,8 +98,10 @@ function LoginForm() {
 
       if (res.status === 200) {
         const { redirectUrl } = await res.json()
+        // --- THIS IS THE CHANGED LINE ---
         // On success, redirect them to their target page
-        window.location.href = redirectUrl;
+        router.push(redirectUrl);
+        // --------------------------------
       } else {
         const { message } = await res.json()
         setErrorMsg(message)
@@ -343,4 +345,3 @@ export default function LoginPage() {
     </div>
   )
 }
-
