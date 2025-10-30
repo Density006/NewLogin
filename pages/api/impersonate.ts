@@ -28,20 +28,37 @@ async function impersonateRoute(req: NextApiRequest, res: NextApiResponse) {
     }
 
     // 4. Create a new session for that user
-    const redirectUrl = credentials.redirect || DEFAULT_REDIRECT_URL
+    
+    // --- NEW REDIRECT LOGIC (mirrors login.ts) ---
+    let finalRedirectUrl: string;
+    let sitesList: string[] | undefined = undefined;
+
+    if (credentials.redirect === undefined) {
+      // 1. No redirect specified, use default
+      finalRedirectUrl = DEFAULT_REDIRECT_URL;
+    } else if (typeof credentials.redirect === 'string') {
+      // 2. Single redirect specified
+      finalRedirectUrl = credentials.redirect;
+    } else {
+      // 3. Multiple redirects specified (it's an array)
+      finalRedirectUrl = '/select-site'; // Send them to the new selection page
+      sitesList = credentials.redirect;  // Store the list
+    }
+    // --- END NEW LOGIC ---
     
     const newSessionData: SessionData = {
       username: username,
       isLoggedIn: true,
-      redirectUrl: redirectUrl,
-      isAdmin: false, // The new session is a normal user session
+      redirectUrl: finalRedirectUrl,
+      redirectSites: sitesList, // <-- ADDED
+      isAdmin: username === '4dmin', // Check if impersonating admin (handles edge case)
     }
     
     // 5. Overwrite the admin's session with the new user's session
     req.session.user = newSessionData
     await req.session.save()
 
-    res.json({ ok: true, redirectUrl: redirectUrl })
+    res.json({ ok: true, redirectUrl: finalRedirectUrl })
 
   } catch (error) {
     res.status(500).json({ message: (error as Error).message })
