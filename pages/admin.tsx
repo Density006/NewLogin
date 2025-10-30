@@ -1,5 +1,5 @@
 // pages/admin.tsx
-import React, { useState, useEffect } from 'react' // Import useState and useEffect
+import React, { useState, useEffect, useRef } from 'react' // Import useRef
 import { withIronSessionSsr } from 'iron-session/next'
 import { sessionOptions, SessionData } from 'lib/session'
 import { validCredentials, DEFAULT_REDIRECT_URL } from 'lib/users'
@@ -11,7 +11,7 @@ type UserTableEntry = {
   redirect: string;
 }
 
-// --- NEW PIN PAD COMPONENT ---
+// --- UPDATED PIN PAD COMPONENT ---
 type PinPadProps = {
   title: string;
   pinLength: number;
@@ -21,12 +21,19 @@ type PinPadProps = {
 };
 
 const PinPad: React.FC<PinPadProps> = ({ title, pinLength, pin, setPin, onPinComplete }) => {
+  const containerRef = useRef<HTMLDivElement>(null); // Ref for keyboard focus
+  
   // Effect to check for pin completion
   useEffect(() => {
     if (pin.length === pinLength) {
       onPinComplete(pin);
     }
   }, [pin, pinLength, onPinComplete]);
+
+  // Effect to auto-focus the container for keyboard input when it appears
+  useEffect(() => {
+    containerRef.current?.focus();
+  }, []);
 
   const handleNumClick = (num: string) => {
     if (pin.length < pinLength) {
@@ -36,6 +43,21 @@ const PinPad: React.FC<PinPadProps> = ({ title, pinLength, pin, setPin, onPinCom
 
   const handleDelete = () => {
     setPin(pin.slice(0, -1));
+  };
+
+  // --- NEW: Keyboard Event Handler ---
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Prevent default browser behavior for Backspace
+    if (e.key === 'Backspace') {
+      e.preventDefault();
+      handleDelete();
+    }
+    
+    // Check if the key is a number
+    if (e.key >= '0' && e.key <= '9') {
+      e.preventDefault();
+      handleNumClick(e.key);
+    }
   };
 
   // Create an array for the dots
@@ -52,13 +74,19 @@ const PinPad: React.FC<PinPadProps> = ({ title, pinLength, pin, setPin, onPinCom
   ];
 
   return (
-    <div className="pin-pad-container">
+    <div
+      ref={containerRef}
+      className="pin-pad-container"
+      tabIndex={-1} // Makes the div focusable
+      onKeyDown={handleKeyDown} // Add the keydown listener
+      style={{ outline: 'none' }} // Hide the focus ring
+    >
       <h3 className="pin-title">{title}</h3>
       <div className="pin-dots">{dots}</div>
       <div className="pin-grid">
         {buttons.map((btn) => {
           if (btn === 'utility') {
-            return <div key="utility" className="pin-btn-placeholder" />; // Placeholder for layout
+            return <div key="utility" className="pin-btn-placeholder" />;
           }
           if (btn === 'delete') {
             return <button key="delete" type="button" className="pin-btn utility" onClick={handleDelete}>&larr;</button>;
@@ -115,7 +143,7 @@ export default function AdminPage({ user, usernames, allUsers }: {
     }
   }
 
-  // --- New Handler for PIN Completion ---
+  // --- Handler for PIN Completion ---
   const handlePinComplete = (pin: string) => {
     if (pin === ADMIN_PASSWORD) {
       setIsUnlocked(true) // Unlock the table
@@ -131,6 +159,14 @@ export default function AdminPage({ user, usernames, allUsers }: {
       }, 1000);
     }
   }
+  
+  // --- Helper to clear state when closing modal ---
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setModalError('');
+    setModalPassword('');
+  }
+
 
   return (
     <div>
@@ -236,7 +272,7 @@ export default function AdminPage({ user, usernames, allUsers }: {
           color: #888;
         }
         
-        /* --- NEW PIN PAD STYLES --- */
+        /* --- PIN PAD STYLES --- */
         .pin-pad-container {
           display: flex;
           flex-direction: column;
@@ -360,19 +396,14 @@ export default function AdminPage({ user, usernames, allUsers }: {
         
         {/* --- UPDATED PASSWORD MODAL --- */}
         {isModalOpen && (
-          <div className="modal-overlay" onClick={() => {
-            setIsModalOpen(false);
-            setModalError('');
-            setModalPassword('');
-          }}>
+          <div className="modal-overlay" onClick={closeModal}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <button className="modal-close-btn" onClick={() => {
-                setIsModalOpen(false);
-                setModalError('');
-                setModalPassword('');
-              }}>&times;</button>
+              <button className="modal-close-btn" onClick={closeModal}>&times;</button>
               
-              {/* This now uses the PinPad component */}
+              {/* This PinPad component is now rendered.
+                It will be focused automatically due to its internal useEffect.
+                It will listen for keyboard input due to its onKeyDown handler.
+              */}
               <PinPad
                 title="Enter Admin PIN"
                 pinLength={ADMIN_PASSWORD.length}
