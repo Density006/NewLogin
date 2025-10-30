@@ -73,6 +73,23 @@ export default function ProtectedPage({ user }: { user: SessionData }) {
         .submit-btn:hover {
           background-color: #005bb5;
         }
+        
+        /* --- NEW: Secondary Button Style --- */
+        .secondary-btn {
+          width: 100%;
+          max-width: 400px;
+          padding: 10px;
+          background-color: #e0e0e0;
+          color: black;
+          border: none;
+          border-radius: 4px;
+          font-size: 16px;
+          cursor: pointer;
+          margin-top: 10px; /* Added margin to separate buttons */
+        }
+        .secondary-btn:hover {
+          background-color: #c7c7c7;
+        }
       `}</style>
       
       {/* --- NEW: Centered container --- */}
@@ -83,6 +100,11 @@ export default function ProtectedPage({ user }: { user: SessionData }) {
         {/* --- NEW: Changed link to button --- */}
         <button className="submit-btn" onClick={handleGoToPage}>
           Go to your page
+        </button>
+        
+        {/* --- THIS IS THE NEW BUTTON YOU REQUESTED --- */}
+        <button className="secondary-btn" onClick={() => router.push('/login')}>
+          Return to Login
         </button>
       </div>
     </>
@@ -113,3 +135,4 @@ export const getServerSideProps = withIronSessionSsr(
   },
   sessionOptions
 )
+
