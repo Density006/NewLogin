@@ -117,6 +117,12 @@ export default function AdminPage({ user, usernames, allUsers }: {
   const [modalError, setModalError] = useState('')
   const ADMIN_PASSWORD = '8007' // The password to unlock the table
   
+  // --- NEW: State for collapsible dropdown ---
+  const [isResetDropdownOpen, setIsResetDropdownOpen] = useState(false);
+  
+  // --- NEW: Google Sheet URL ---
+  const resetSheetUrl = "https://docs.google.com/spreadsheets/d/1N6tCWMVNG5Hz0DJa2h9KmsVMj-Gh_4BnMKKOAyjSR3I/edit?usp=sharing&embedded=true";
+
   // This function handles the dropdown form
   async function handleImpersonateSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -174,6 +180,23 @@ export default function AdminPage({ user, usernames, allUsers }: {
     <div>
       {/* Styles for the page, form, table, and NEW MODAL/PINPAD */}
       <style jsx global>{`
+        /* --- NEW: Keyframe Animations --- */
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes zoomIn {
+          from { 
+            opacity: 0;
+            transform: scale(0.95);
+          }
+          to { 
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+        /* --- End Keyframes --- */
+      
         body {
           font-family: Calibri, sans-serif;
         }
@@ -257,7 +280,7 @@ export default function AdminPage({ user, usernames, allUsers }: {
           word-break: break-all;
         }
         
-        /* --- MODAL STYLES --- */
+        /* --- MODAL STYLES (with new animation) --- */
         .modal-overlay {
           position: fixed;
           top: 0;
@@ -269,6 +292,7 @@ export default function AdminPage({ user, usernames, allUsers }: {
           justify-content: center;
           align-items: center;
           z-index: 1000;
+          animation: fadeIn 0.3s ease-out; /* <-- NEW */
         }
         .modal-content {
           background-color: white;
@@ -278,6 +302,7 @@ export default function AdminPage({ user, usernames, allUsers }: {
           position: relative;
           width: 300px;
           text-align: center;
+          animation: zoomIn 0.3s ease-out; /* <-- NEW */
         }
         .modal-close-btn {
           position: absolute;
@@ -353,6 +378,56 @@ export default function AdminPage({ user, usernames, allUsers }: {
           width: 60px;
           height: 60px;
         }
+        
+        /* --- NEW COLLAPSIBLE DROPDOWN STYLES --- */
+        .collapsible-container {
+          max-width: 800px;
+          margin: 40px auto;
+          border: 1px solid #ccc;
+          border-radius: 8px;
+          overflow: hidden; /* Important for the transition */
+        }
+        .collapsible-toggle {
+          background-color: #f2f2f2;
+          border: none;
+          width: 100%;
+          padding: 15px 20px;
+          font-size: 18px;
+          font-weight: bold;
+          cursor: pointer;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .collapsible-toggle:hover {
+          background-color: #e8e8e8;
+        }
+        .arrow {
+          font-size: 20px;
+          transition: transform 0.3s ease-out;
+        }
+        .arrow.open {
+          transform: rotate(90deg);
+        }
+        .collapsible-content {
+          max-height: 0;
+          overflow: hidden;
+          transition: max-height 0.5s ease-out; /* The slide transition */
+        }
+        .collapsible-content.open {
+          max-height: 80vh; /* Set a max height for the open state */
+          border-top: 1px solid #ccc;
+        }
+        .iframe-container {
+          width: 100%;
+          height: 80vh; /* 80% of the viewport height */
+          border: 0; /* Remove border from container, it's on the content now */
+        }
+        .iframe-container iframe {
+          width: 100%;
+          height: 100%;
+          border: 0;
+        }
         /* --- END NEW STYLES --- */
       `}</style>
       
@@ -420,6 +495,27 @@ export default function AdminPage({ user, usernames, allUsers }: {
             </button>
           </div>
         )}
+        
+        {/* --- NEW COLLAPSIBLE DROPDOWN --- */}
+        <div className="collapsible-container">
+          <button 
+            className="collapsible-toggle" 
+            onClick={() => setIsResetDropdownOpen(!isResetDropdownOpen)}
+          >
+            View password reset requests
+            <span className={`arrow ${isResetDropdownOpen ? 'open' : ''}`}>&gt;</span>
+          </button>
+          <div className={`collapsible-content ${isResetDropdownOpen ? 'open' : ''}`}>
+            <div className="iframe-container">
+              <iframe 
+                src={resetSheetUrl}
+                title="Password Reset Responses"
+              >
+                Loading…
+              </iframe>
+            </div>
+          </div>
+        </div>
         
         {/* --- UPDATED PASSWORD MODAL --- */}
         {isModalOpen && (
