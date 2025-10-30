@@ -8,7 +8,7 @@ const WA_TIMEZONE_OFFSET = '+08:00'
 const DEFAULT_REDIRECT_URL = 'https://sites.google.com/studio.digital/multitool/Hw2'
 const DENSITY_REDIRECT_URL = 'https://sites.google.com/studio.digital/multitool/Dense'
 const ETHAN_REDIRECT_URL = 'https://ethans-page.com'
-const ADMIN_REDIRECT_URL = 'https://vercel.com/density006'
+// const ADMIN_REDIRECT_URL = 'https://vercel.com/density006' // No longer needed here
 const DISALLOWED_REDIRECT_URL = 'https://sites.google.com/studio.digital/hmmm/home'
 const GITHUB_REDIRECT_URL = 'https://github.com/Density006/Density006password'
 const TEDDBLUE = 'https://gamebois-inky.vercel.app/'
@@ -31,7 +31,9 @@ const validCredentials = new Map<string, UserCredentials>([
     validFrom: '2025-10-29 9:35',
     validUntil: '2025-10-29 10:00',
   }],
-  ['4dmin', { pwd: 'NATE', redirect: ADMIN_REDIRECT_URL }],
+  // --- THIS IS THE CHANGE ---
+  ['4dmin', { pwd: 'NATE', redirect: '/admin' }], // Redirect to the new admin page
+  // --- END CHANGE ---
   ['Jimmy', { pwd: 'germanleader' }],
   ['Test', {
     pwd: 'Nate',
@@ -76,7 +78,6 @@ async function loginRoute(req: NextApiRequest, res: NextApiResponse) {
   }
 
   const { username, password } = await req.body
-  // --- THIS IS THE FIXED LINE ---
   const ip = (req.headers['x-forwarded-for'] || 'IP not found') as string
 
   try {
@@ -117,11 +118,14 @@ async function loginRoute(req: NextApiRequest, res: NextApiResponse) {
     // --- SUCCESS! ---
     const redirectUrl = credentials.redirect || DEFAULT_REDIRECT_URL
     
+    // --- THIS IS THE CHANGE ---
     const sessionData: SessionData = {
       username: username,
       isLoggedIn: true,
       redirectUrl: redirectUrl,
+      isAdmin: username === '4dmin', // Set isAdmin flag to true if user is 4dmin
     }
+    // --- END CHANGE ---
     
     req.session.user = sessionData
     await req.session.save()
