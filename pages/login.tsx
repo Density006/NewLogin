@@ -7,9 +7,12 @@ function LoginForm() {
   const router = useRouter()
   const [errorMsg, setErrorMsg] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false) // <-- ADDED for modal
+  const [isLoading, setIsLoading] = useState(false) // <-- ADDED for loading state
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    setIsLoading(true); // <-- Start loading
+    setErrorMsg(''); // Clear old errors
 
     const body = {
       username: e.currentTarget.username.value,
@@ -33,6 +36,8 @@ function LoginForm() {
       }
     } catch (error) {
       setErrorMsg('An unknown error occurred')
+    } finally {
+      setIsLoading(false); // <-- Stop loading
     }
   }
 
@@ -56,7 +61,15 @@ function LoginForm() {
           border: 1px solid #ccc;
           border-radius: 8px;
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          transition: opacity 0.3s ease-out; /* <-- Added transition */
         }
+        
+        /* --- ADDED: Loading state style --- */
+        .login-form.loading {
+          opacity: 0.7;
+          pointer-events: none;
+        }
+        
         .form-group {
           margin-bottom: 15px;
         }
@@ -81,10 +94,18 @@ function LoginForm() {
           border-radius: 4px;
           font-size: 16px;
           cursor: pointer;
+          transition: background-color 0.2s; /* <-- Added transition */
         }
         .submit-btn:hover {
           background-color: #005bb5;
         }
+        
+        /* --- ADDED: Disabled button state --- */
+        .submit-btn:disabled { 
+          background-color: #005bb5;
+          cursor: wait;
+        }
+        
         .error {
           color: red;
           margin-top: 10px;
@@ -152,29 +173,46 @@ function LoginForm() {
           background-color: #e0e0e0;
           color: black;
         }
+        
+        /* --- NEW: Case Sensitive Note Style --- */
+        .case-sensitive-note {
+          text-align: center;
+          font-size: 12px;
+          color: #555;
+          margin-top: 15px;
+          margin-bottom: -5px; /* Pulls the forgot password link up slightly */
+        }
       `}</style>
       
       {/* --- LOGIN FORM --- */}
-      <form className="login-form" onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="username">Username</label>
-          <input id="username" name="username" type="text" required />
-        </div>
-        <div className="form-group">
-          <label htmlFor="password">Password</label>
-          <input id="password" name="password" type="password" required />
-        </div>
-        <button className="submit-btn" type="submit">
-          Login
+      <form className={`login-form ${isLoading ? 'loading' : ''}`} onSubmit={handleSubmit}>
+        <fieldset disabled={isLoading}>
+          <div className="form-group">
+            <label htmlFor="username">Username</label>
+            <input id="username" name="username" type="text" required />
+          </div>
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
+            <input id="password" name="password" type="password" required />
+          </div>
+        </fieldset>
+        
+        <button className="submit-btn" type="submit" disabled={isLoading}>
+          {isLoading ? 'Signing In...' : 'Login'}
         </button>
         {errorMsg && <p className="error">{errorMsg}</p>}
+        
+        {/* --- ADDED: Case Sensitive Note --- */}
+        <p className="case-sensitive-note">
+          Note: Username and Password are case sensitive.
+        </p>
         
         {/* --- ADDED: Forgot Password Link --- */}
         <div className="forgot-password">
           <button 
             type="button" 
             className="forgot-password-btn" 
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => !isLoading && setIsModalOpen(true)} // Don't allow click if loading
           >
             Forgot Password?
           </button>
