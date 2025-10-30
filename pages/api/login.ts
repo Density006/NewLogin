@@ -56,20 +56,38 @@ async function loginRoute(req: NextApiRequest, res: NextApiResponse) {
     }
 
     // --- SUCCESS! ---
-    const redirectUrl = credentials.redirect || DEFAULT_REDIRECT_URL
     
+    // --- NEW REDIRECT LOGIC ---
+    let finalRedirectUrl: string;
+    let sitesList: string[] | undefined = undefined;
+
+    if (credentials.redirect === undefined) {
+      // 1. No redirect specified, use default
+      finalRedirectUrl = DEFAULT_REDIRECT_URL;
+    } else if (typeof credentials.redirect === 'string') {
+      // 2. Single redirect specified
+      finalRedirectUrl = credentials.redirect;
+    } else {
+      // 3. Multiple redirects specified (it's an array)
+      finalRedirectUrl = '/select-site'; // Send them to the new selection page
+      sitesList = credentials.redirect;  // Store the list
+    }
+    // --- END NEW LOGIC ---
+
     const sessionData: SessionData = {
       username: username,
       isLoggedIn: true,
-      redirectUrl: redirectUrl,
-      isAdmin: username === '4dmin', // Set isAdmin flag to true if user is 4dmin
+      redirectUrl: finalRedirectUrl, // This is what the client gets
+      redirectSites: sitesList,      // This is stored in the session
+      isAdmin: username === '4dmin',
     }
     
     req.session.user = sessionData
     await req.session.save()
 
     console.log(`Successful login - IP: ${ip}, User: ${username}`)
-    res.json({ ok: true, redirectUrl: redirectUrl })
+    // Return the finalRedirectUrl (e.g., '/select-site' or the specific page)
+    res.json({ ok: true, redirectUrl: finalRedirectUrl })
 
   } catch (error) {
     res.status(500).json({ message: (error as Error).message })
