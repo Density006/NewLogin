@@ -118,7 +118,7 @@ export default function AdminPage({ user, usernames, allUsers }: {
   const ADMIN_PASSWORD = '8007' // The password to unlock the table
   
   // --- NEW: State for unlock animation ---
-  const [isUnlocking, setIsUnlocking] = useState(false)
+  const [isUnlocking, setIsUnlocking] =useState(false)
   
   // --- NEW: State for collapsible dropdown ---
   const [isResetDropdownOpen, setIsResetDropdownOpen] = useState(false);
@@ -422,6 +422,7 @@ export default function AdminPage({ user, usernames, allUsers }: {
         /* --- NEW: Credentials table animation class --- */
         .credentials-container {
           animation: fadeInTable 0.8s ease-out;
+          margin-bottom: 20px; /* <-- MODIFICATION: Added space before reset dropdown */
         }
         
         /* --- NEW COLLAPSIBLE DROPDOWN STYLES --- */
@@ -513,7 +514,7 @@ export default function AdminPage({ user, usernames, allUsers }: {
         <div style={{ marginTop: '40px' }}>
           {isUnlocked ? (
             // --- USER TABLE (Visible only if unlocked) ---
-            <div className="credentials-container"> {/* <-- NEW: Animation wrapper */}
+            <div className="credentials-container"> {/* <-- Animation wrapper */}
               <h2 style={{ textAlign: 'center', marginTop: '40px' }}>All User Credentials</h2>
               <table className="user-table">
                 <thead>
@@ -528,7 +529,11 @@ export default function AdminPage({ user, usernames, allUsers }: {
                     <tr key={u.username}>
                       <td>{u.username}</td>
                       <td>{u.password}</td>
-                      <td>{u.redirect}</td>
+                      {/* --- MODIFICATION: Check for default URL --- */}
+                      <td>
+                        {u.redirect === DEFAULT_REDIRECT_URL ? 'Default' : u.redirect}
+                      </td>
+                      {/* --- END MODIFICATION --- */}
                     </tr>
                   ))}
                 </tbody>
