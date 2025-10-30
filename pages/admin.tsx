@@ -1,5 +1,5 @@
 // pages/admin.tsx
-import React, { useState } from 'react' // Import useState
+import React, { useState, useEffect } from 'react' // Import useState and useEffect
 import { withIronSessionSsr } from 'iron-session/next'
 import { sessionOptions, SessionData } from 'lib/session'
 import { validCredentials, DEFAULT_REDIRECT_URL } from 'lib/users'
@@ -11,6 +11,67 @@ type UserTableEntry = {
   redirect: string;
 }
 
+// --- NEW PIN PAD COMPONENT ---
+type PinPadProps = {
+  title: string;
+  pinLength: number;
+  pin: string;
+  setPin: (pin: string) => void;
+  onPinComplete: (pin: string) => void;
+};
+
+const PinPad: React.FC<PinPadProps> = ({ title, pinLength, pin, setPin, onPinComplete }) => {
+  // Effect to check for pin completion
+  useEffect(() => {
+    if (pin.length === pinLength) {
+      onPinComplete(pin);
+    }
+  }, [pin, pinLength, onPinComplete]);
+
+  const handleNumClick = (num: string) => {
+    if (pin.length < pinLength) {
+      setPin(pin + num);
+    }
+  };
+
+  const handleDelete = () => {
+    setPin(pin.slice(0, -1));
+  };
+
+  // Create an array for the dots
+  const dots = [];
+  for (let i = 0; i < pinLength; i++) {
+    dots.push(<div key={i} className={`dot ${i < pin.length ? 'filled' : ''}`}></div>);
+  }
+
+  const buttons = [
+    '1', '2', '3',
+    '4', '5', '6',
+    '7', '8', '9',
+    'utility', '0', 'delete'
+  ];
+
+  return (
+    <div className="pin-pad-container">
+      <h3 className="pin-title">{title}</h3>
+      <div className="pin-dots">{dots}</div>
+      <div className="pin-grid">
+        {buttons.map((btn) => {
+          if (btn === 'utility') {
+            return <div key="utility" className="pin-btn-placeholder" />; // Placeholder for layout
+          }
+          if (btn === 'delete') {
+            return <button key="delete" type="button" className="pin-btn utility" onClick={handleDelete}>&larr;</button>;
+          }
+          return <button key={btn} type="button" className="pin-btn" onClick={() => handleNumClick(btn)}>{btn}</button>;
+        })}
+      </div>
+    </div>
+  );
+};
+// --- END PIN PAD COMPONENT ---
+
+
 // Update the component's props to accept the new 'allUsers' list
 export default function AdminPage({ user, usernames, allUsers }: { 
   user: SessionData, 
@@ -19,13 +80,12 @@ export default function AdminPage({ user, usernames, allUsers }: {
 }) {
   const [impersonateError, setImpersonateError] = useState('')
   
-  // --- New State for Modal and Table ---
+  // --- State for Modal and Table ---
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isUnlocked, setIsUnlocked] = useState(false)
-  const [modalPassword, setModalPassword] = useState('')
+  const [modalPassword, setModalPassword] = useState('') // This will now store the PIN
   const [modalError, setModalError] = useState('')
   const ADMIN_PASSWORD = '8007' // The password to unlock the table
-  // --- End New State ---
   
   // This function handles the dropdown form
   async function handleImpersonateSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -55,23 +115,26 @@ export default function AdminPage({ user, usernames, allUsers }: {
     }
   }
 
-  // --- New Handler for the Modal Password ---
-  const handleModalSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    if (modalPassword === ADMIN_PASSWORD) {
+  // --- New Handler for PIN Completion ---
+  const handlePinComplete = (pin: string) => {
+    if (pin === ADMIN_PASSWORD) {
       setIsUnlocked(true) // Unlock the table
       setIsModalOpen(false) // Close the modal
       setModalPassword('')
       setModalError('')
     } else {
-      setModalError('Wrong password. Please try again.')
-      setModalPassword('')
+      setModalError('Wrong PIN. Try again.')
+      // Reset the PIN after a short delay so the user sees the error
+      setTimeout(() => {
+        setModalPassword('')
+        setModalError('')
+      }, 1000);
     }
   }
 
   return (
     <div>
-      {/* Styles for the page, form, table, and NEW MODAL */}
+      {/* Styles for the page, form, table, and NEW MODAL/PINPAD */}
       <style jsx global>{`
         body {
           font-family: Calibri, sans-serif;
@@ -140,7 +203,7 @@ export default function AdminPage({ user, usernames, allUsers }: {
           word-break: break-all;
         }
         
-        /* --- NEW MODAL STYLES --- */
+        /* --- MODAL STYLES --- */
         .modal-overlay {
           position: fixed;
           top: 0;
@@ -172,24 +235,71 @@ export default function AdminPage({ user, usernames, allUsers }: {
           cursor: pointer;
           color: #888;
         }
-        .modal-form label {
-          display: block;
-          margin-bottom: 10px;
+        
+        /* --- NEW PIN PAD STYLES --- */
+        .pin-pad-container {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          width: 100%;
+        }
+        .pin-title {
+          font-size: 18px;
           font-weight: bold;
+          margin-top: 10px;
+          margin-bottom: 20px;
         }
-        .modal-form input {
+        .pin-dots {
+          display: flex;
+          justify-content: center;
+          margin-bottom: 25px;
+        }
+        .dot {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          border: 1px solid #333;
+          margin: 0 8px;
+        }
+        .dot.filled {
+          background-color: #333;
+        }
+        .pin-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 15px;
           width: 100%;
-          padding: 8px;
-          font-size: 16px;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-          margin-bottom: 15px;
-          text-align: center;
+          max-width: 240px; /* Controls the max size of the pad */
         }
-        .modal-form .submit-btn {
-          width: 100%;
+        .pin-btn {
+          width: 60px; /* Fixed size for circle */
+          height: 60px; /* Fixed size for circle */
+          font-size: 24px;
+          border-radius: 50%; /* Makes it round */
+          border: 1px solid #ccc;
+          background-color: #f0f0f0;
+          cursor: pointer;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          transition: background-color 0.2s;
         }
-        /* --- END NEW MODAL STYLES --- */
+        .pin-btn:hover {
+          background-color: #e0e0e0;
+        }
+        .pin-btn.utility {
+          font-size: 20px;
+          background-color: transparent;
+          border: none;
+        }
+        .pin-btn.utility:hover {
+          background-color: #f0f0f0;
+        }
+        .pin-btn-placeholder {
+          width: 60px;
+          height: 60px;
+        }
+        /* --- END NEW STYLES --- */
       `}</style>
       
       <div className="container">
@@ -248,24 +358,30 @@ export default function AdminPage({ user, usernames, allUsers }: {
           </div>
         )}
         
-        {/* --- NEW PASSWORD MODAL --- */}
+        {/* --- UPDATED PASSWORD MODAL --- */}
         {isModalOpen && (
-          <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
+          <div className="modal-overlay" onClick={() => {
+            setIsModalOpen(false);
+            setModalError('');
+            setModalPassword('');
+          }}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <button className="modal-close-btn" onClick={() => setIsModalOpen(false)}>&times;</button>
+              <button className="modal-close-btn" onClick={() => {
+                setIsModalOpen(false);
+                setModalError('');
+                setModalPassword('');
+              }}>&times;</button>
               
-              <form className="modal-form" onSubmit={handleModalSubmit}>
-                <label htmlFor="modal-password">Enter Admin Password</label>
-                <input
-                  id="modal-password"
-                  type="password"
-                  value={modalPassword}
-                  onChange={(e) => setModalPassword(e.target.value)}
-                  autoFocus
-                />
-                <button className="submit-btn" type="submit">Unlock</button>
-                {modalError && <p className="error">{modalError}</p>}
-              </form>
+              {/* This now uses the PinPad component */}
+              <PinPad
+                title="Enter Admin PIN"
+                pinLength={ADMIN_PASSWORD.length}
+                pin={modalPassword}
+                setPin={setModalPassword}
+                onPinComplete={handlePinComplete}
+              />
+              {modalError && <p className="error" style={{ marginTop: '15px' }}>{modalError}</p>}
+
             </div>
           </div>
         )}
@@ -276,7 +392,7 @@ export default function AdminPage({ user, usernames, allUsers }: {
   )
 }
 
-// --- SERVER SIDE PROPS (No changes needed here) ---
+// --- SERVER SIDE PROPS (No changes) ---
 export const getServerSideProps = withIronSessionSsr(
   async function ({ req, res }) {
     const user = req.session.user
