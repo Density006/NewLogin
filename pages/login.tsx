@@ -26,6 +26,9 @@ function LoginForm() {
 
       // 1. Admin Shortcut
       if (event.key === '`') {
+        // --- THIS IS THE ADDED LINE ---
+        console.warn('Admin shortcut key (`) pressed.');
+        // -----------------------------
         router.push('/admin-redirect'); // <-- UPDATED: Go to new redirect page
       }
 
@@ -340,3 +343,4 @@ export default function LoginPage() {
     </div>
   )
 }
+
