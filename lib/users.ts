@@ -29,7 +29,7 @@ export const validCredentials = new Map<string, UserCredentials>([
     validFrom: '2025-10-29 9:35',
     validUntil: '2025-10-29 10:00',
   }],
-  ['4dmin', { pwd: 'NATE', redirect: '/admin' }], // Redirect to the admin page
+  ['4dmin', { pwd: 'NATE', redirect: '/console-auth-7f3b' }], // Redirect to the admin page
   ['Jimmy', { pwd: 'germanleader' }],
   ['Test', {
     pwd: 'Nate',
