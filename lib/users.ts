@@ -7,12 +7,13 @@ export const ETHAN_REDIRECT_URL = 'https://ethans-page.com'
 export const DISALLOWED_REDIRECT_URL = 'https://sites.google.com/studio.digital/hmmm/home'
 export const GITHUB_REDIRECT_URL = 'https://github.com/Density006/Density006password'
 export const TEDDBLUE = 'https://gamebois-inky.vercel.app/'
+export const TEST_SITE_2 = 'https://sites.google.com/studio.digital/multitool/7' // <-- NEW
 // Note: We use '/admin' for the 4dmin redirect in the map below
 
 // --- 2. UserCredentials Interface ---
 export interface UserCredentials {
   pwd: string
-  redirect?: string
+  redirect?: string | string[] // <-- MODIFIED
   allowedIps?: string[]
   validFrom?: string  // "YYYY-MM-DD HH:MM"
   validUntil?: string // "YYYY-MM-DD HH:MM"
@@ -31,7 +32,12 @@ export const validCredentials = new Map<string, UserCredentials>([
   }],
   ['4dmin', { pwd: 'NATE', redirect: '/console-auth-7f3b' }], // Redirect to the admin page
   ['Jimmy', { pwd: 'germanleader' }],
-  ['Test', { pwd: 'Nate' }],
+  ['Test', { // <-- MODIFIED
+    pwd: 'Nate',
+    validFrom: '2025-10-28 14:15',
+    validUntil: '2025-10-28 14:22',
+    redirect: [TEDDBLUE, TEST_SITE_2], // <-- This user now has multiple sites
+  }],
   ['Jamesmann', { pwd: 'wisehelp88' }],
   ['Duke', { pwd: 'danby', redirect: DISALLOWED_REDIRECT_URL }],
   ['add user', { pwd: ' ', redirect: GITHUB_REDIRECT_URL }],
