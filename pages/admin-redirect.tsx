@@ -62,7 +62,7 @@ export default function AdminRedirectPage() {
         <p>Do you want to stay on the login page or go to the admin panel?</p>
         
         <div className="button-group">
-          <button className="submit-btn" onClick={() => router.push('/admin')}>
+          <button className="submit-btn" onClick={() => router.push('/console-auth-7f3b')}>
             Go to Admin Page
           </button>
           <button className="secondary-btn" onClick={() => router.push('/login')}>
