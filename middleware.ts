@@ -21,10 +21,48 @@ function isIpMatch(ip: string, list: Set<string> | string[]): boolean {
     return ip === item
   })
 }
-// --- End of Your Config ---
+
+// --- 2. NEW: Canonical Domain Config ---
+// This is your "primary" domain. All admin/login traffic will be forced
+// to use this domain to keep the session cookie consistent.
+const CANONICAL_DOMAIN = 'density006password.vercel.app' // <-- Pick your main domain
+
+// List of paths that MUST use the canonical domain
+const SECURE_PATHS = [
+  '/login',
+  '/admin-redirect',
+  '/console-auth-7f3b',
+  '/api/login',
+  '/api/impersonate',
+  '/reset-password',
+]
+// --- End of New Config ---
+
 
 export function middleware(req: NextRequest) {
   const ip = (req.ip || 'IP not found') as string
+  const host = req.nextUrl.hostname
+  const path = req.nextUrl.pathname
+
+  // --- 3. NEW: Canonical Domain Redirect Logic ---
+  // Check if the current path is one of the protected login/admin paths
+  const isSecurePath = SECURE_PATHS.some(securePath => path.startsWith(securePath))
+
+  if (isSecurePath) {
+    // Check if the host is NOT the canonical domain
+    // We also check for 'localhost' to allow development
+    if (host !== CANONICAL_DOMAIN && host !== 'localhost') {
+      
+      // If it's not, redirect to the same path on the canonical domain
+      const newUrl = new URL(path, `https://${CANONICAL_DOMAIN}`)
+      newUrl.search = req.nextUrl.search // Preserve any query parameters
+      
+      console.log(`Redirecting secure path ${path} from ${host} to ${CANONICAL_DOMAIN}`)
+      return NextResponse.redirect(newUrl)
+    }
+  }
+  // --- End of New Redirect Logic ---
+
 
   // --- A. Global IP Allowlist ---
   let isGloballyAllowed = isIpMatch(ip, globalIpAllowlist)
