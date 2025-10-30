@@ -24,13 +24,14 @@ function LoginForm() {
         return;
       }
 
-      // 1. Admin Shortcut
-      if (event.key === '`') {
+      // --- 1. Admin Shortcut (MODIFIED) ---
+      if (event.ctrlKey && event.key === '\\') {
         // --- THIS IS THE ADDED LINE ---
-        console.warn('Admin shortcut key (`) pressed.');
+        console.warn('Admin shortcut key (Ctrl+\\) pressed.');
         // -----------------------------
         router.push('/admin-redirect'); // <-- UPDATED: Go to new redirect page
       }
+      // --- END OF MODIFICATION ---
 
       // 2. Easter Egg Shortcut
       // Clear the previous 5-second timer
