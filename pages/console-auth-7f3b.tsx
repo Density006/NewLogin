@@ -118,7 +118,11 @@ export default function AdminPage({ user, usernames, allUsers }: {
   const ADMIN_PASSWORD = '8007' // The password to unlock the table
   
   // --- NEW: State for unlock animation ---
-  const [isUnlocking, setIsUnlocking] =useState(false)
+  const [isUnlocking, setIsUnlocking] = useState(false)
+
+  // --- NEW: State for shake/error animations ---
+  const [isError, setIsError] = useState(false)
+  const [isErrorFading, setIsErrorFading] = useState(false)
   
   // --- NEW: State for collapsible dropdown ---
   const [isResetDropdownOpen, setIsResetDropdownOpen] = useState(false);
@@ -155,27 +159,45 @@ export default function AdminPage({ user, usernames, allUsers }: {
     }
   }
 
-  // --- UPDATED: Handler for PIN Completion (with animation) ---
+  // --- UPDATED: Handler for PIN Completion (with shake/fade animations) ---
   const handlePinComplete = (pin: string) => {
+    // Prevent multiple submissions
+    if (isUnlocking || isError) return;
+
     if (pin === ADMIN_PASSWORD) {
       setModalError('')
       setIsUnlocking(true) // Start the fade-out animation
       
       // Wait for animation to finish, then swap content
+      // MODIFICATION: Changed from 500ms to 600ms to prevent race condition
       setTimeout(() => {
         setIsUnlocked(true)   // Show the table
         setIsModalOpen(false) // Hide the modal
         setModalPassword('')  // Reset PIN
         setIsUnlocking(false) // Reset animation state
-      }, 500); // This duration must match the 'fadeOut' animation
+      }, 600); // This duration must be > 'fadeOut' animation (500ms)
       
     } else {
+      // 1. Set error message and trigger shake
       setModalError('Wrong PIN. Try again.')
-      // Reset the PIN after a short delay so the user sees the error
+      setIsError(true)
+
+      // 2. After shake animation (500ms), remove shake class
+      setTimeout(() => {
+        setIsError(false)
+      }, 500); // Must match shake animation duration
+
+      // 3. After a delay, start fading out the error message
+      setTimeout(() => {
+        setIsErrorFading(true)
+      }, 1500); // Start fading error after 1.5s
+
+      // 4. After fade out (500ms), reset everything
       setTimeout(() => {
         setModalPassword('')
         setModalError('')
-      }, 1000);
+        setIsErrorFading(false)
+      }, 2000); // 1500ms + 500ms fade
     }
   }
   
@@ -184,7 +206,10 @@ export default function AdminPage({ user, usernames, allUsers }: {
     setIsModalOpen(false);
     setModalError('');
     setModalPassword('');
-    setIsUnlocking(false); // <-- NEW: Reset animation state
+    setIsUnlocking(false);
+    // --- NEW: Reset error states on close ---
+    setIsError(false);
+    setIsErrorFading(false);
   }
 
 
@@ -215,6 +240,14 @@ export default function AdminPage({ user, usernames, allUsers }: {
         @keyframes fadeInTable {
           from { opacity: 0; }
           to { opacity: 1; }
+        }
+
+        /* --- NEW: Shake animation for pin error --- */
+        @keyframes shake {
+          10%, 90% { transform: translateX(-1px); }
+          20%, 80% { transform: translateX(2px); }
+          30%, 50%, 70% { transform: translateX(-4px); }
+          40%, 60% { transform: translateX(4px); }
         }
         /* --- End Keyframes --- */
       
@@ -419,6 +452,16 @@ export default function AdminPage({ user, usernames, allUsers }: {
           animation: fadeOut 0.5s ease-out forwards;
         }
         
+        /* --- NEW: Pinpad error shake class --- */
+        .pin-pad-error {
+          animation: shake 0.5s ease-in-out;
+        }
+
+        /* --- NEW: Error message fade out --- */
+        .error-fade-out {
+           animation: fadeOut 0.5s ease-out forwards;
+        }
+        
         /* --- NEW: Credentials table animation class --- */
         .credentials-container {
           animation: fadeInTable 0.8s ease-out;
@@ -585,8 +628,14 @@ export default function AdminPage({ user, usernames, allUsers }: {
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               <button className="modal-close-btn" onClick={closeModal}>&times;</button>
               
-              {/* --- NEW: Wrapper for pinpad fade-out animation --- */}
-              <div className={isUnlocking ? 'pin-pad-fade-out' : ''}>
+              {/* --- MODIFICATION ---
+                Wrapper now handles success fade-out (isUnlocking) 
+                AND error shake (isError)
+              */}
+              <div className={`
+                ${isUnlocking ? 'pin-pad-fade-out' : ''}
+                ${isError ? 'pin-pad-error' : ''}
+              `}>
                 <PinPad
                   title="Enter Admin PIN"
                   pinLength={ADMIN_PASSWORD.length}
@@ -594,7 +643,17 @@ export default function AdminPage({ user, usernames, allUsers }: {
                   setPin={setModalPassword}
                   onPinComplete={handlePinComplete}
                 />
-                {modalError && <p className="error" style={{ marginTop: '15px' }}>{modalError}</p>}
+                {/* --- MODIFICATION ---
+                  Error message now has its own fade-out animation
+                */}
+                {modalError && (
+                  <p 
+                    className={`error ${isErrorFading ? 'error-fade-out' : ''}`} 
+                    style={{ marginTop: '15px' }}
+                  >
+                    {modalError}
+                  </p>
+                )}
               </div>
 
             </div>
