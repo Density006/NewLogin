@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react' // Import useRef
 import { useRouter } from 'next/router' // <-- 1. IMPORTED ROUTER
 import { withIronSessionSsr } from 'iron-session/next'
 import { sessionOptions, SessionData } from 'lib/session'
-import { validCredentials, DEFAULT_REDIRECT_URL } from 'lib/users'
+import { validCredentials, DEFAULT_REDIRECT_URL, UserCredentials } from 'lib/users'
 
 // Define a type for the data we'll put in the table
 type UserTableEntry = {
@@ -660,7 +660,7 @@ export default function AdminPage({ user, usernames, allUsers }: {
   )
 }
 
-// --- SERVER SIDE PROPS (No changes) ---
+// --- SERVER SIDE PROPS (MODIFIED) ---
 export const getServerSideProps = withIronSessionSsr(
   async function ({ req, res }) {
     const user = req.session.user
@@ -678,11 +678,27 @@ export const getServerSideProps = withIronSessionSsr(
       }
     }
     
-    const allUsers = Array.from(validCredentials.entries()).map(([username, data]) => ({
-      username: username,
-      password: data.pwd,
-      redirect: data.redirect || DEFAULT_REDIRECT_URL
-    }));
+    // --- MODIFIED: Logic to handle array display ---
+    const allUsers = Array.from(validCredentials.entries()).map(([username, data]) => {
+      let redirectDisplay: string;
+      const redirect = data.redirect;
+
+      if (redirect === undefined) {
+        redirectDisplay = DEFAULT_REDIRECT_URL;
+      } else if (typeof redirect === 'string') {
+        redirectDisplay = redirect;
+      } else {
+        // It's an array
+        redirectDisplay = `Multiple (${redirect.length})`;
+      }
+
+      return {
+        username: username,
+        password: data.pwd,
+        redirect: redirectDisplay === DEFAULT_REDIRECT_URL ? 'Default' : redirectDisplay
+      };
+    });
+    // --- END MODIFICATION ---
 
     const usernames = allUsers.map(u => u.username);
 
