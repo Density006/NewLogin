@@ -117,6 +117,9 @@ export default function AdminPage({ user, usernames, allUsers }: {
   const [modalError, setModalError] = useState('')
   const ADMIN_PASSWORD = '8007' // The password to unlock the table
   
+  // --- NEW: State for unlock animation ---
+  const [isUnlocking, setIsUnlocking] = useState(false)
+  
   // --- NEW: State for collapsible dropdown ---
   const [isResetDropdownOpen, setIsResetDropdownOpen] = useState(false);
   
@@ -152,13 +155,20 @@ export default function AdminPage({ user, usernames, allUsers }: {
     }
   }
 
-  // --- Handler for PIN Completion ---
+  // --- UPDATED: Handler for PIN Completion (with animation) ---
   const handlePinComplete = (pin: string) => {
     if (pin === ADMIN_PASSWORD) {
-      setIsUnlocked(true) // Unlock the table
-      setIsModalOpen(false) // Close the modal
-      setModalPassword('')
       setModalError('')
+      setIsUnlocking(true) // Start the fade-out animation
+      
+      // Wait for animation to finish, then swap content
+      setTimeout(() => {
+        setIsUnlocked(true)   // Show the table
+        setIsModalOpen(false) // Hide the modal
+        setModalPassword('')  // Reset PIN
+        setIsUnlocking(false) // Reset animation state
+      }, 500); // This duration must match the 'fadeOut' animation
+      
     } else {
       setModalError('Wrong PIN. Try again.')
       // Reset the PIN after a short delay so the user sees the error
@@ -169,11 +179,12 @@ export default function AdminPage({ user, usernames, allUsers }: {
     }
   }
   
-  // --- Helper to clear state when closing modal ---
+  // --- UPDATED: Helper to clear state when closing modal ---
   const closeModal = () => {
     setIsModalOpen(false);
     setModalError('');
     setModalPassword('');
+    setIsUnlocking(false); // <-- NEW: Reset animation state
   }
 
 
@@ -196,6 +207,15 @@ export default function AdminPage({ user, usernames, allUsers }: {
             transform: scale(1);
           }
         }
+        /* --- NEW: Fade in/out for credentials --- */
+        @keyframes fadeOut {
+          from { opacity: 1; }
+          to { opacity: 0; }
+        }
+        @keyframes fadeInTable {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
         /* --- End Keyframes --- */
       
         body {
@@ -207,7 +227,7 @@ export default function AdminPage({ user, usernames, allUsers }: {
           padding: 0 10px;
         }
         .login-form {
-          /* --- THIS LINE WAS REMOVED: max-width: 400px; --- */
+          /* max-width: 400px; <-- Removed this for consistent width */
           margin: 40px auto;
           padding: 20px;
           border: 1px solid #ccc;
@@ -242,6 +262,17 @@ export default function AdminPage({ user, usernames, allUsers }: {
         .submit-btn:hover {
           background-color: #005bb5;
         }
+        
+        /* --- NEW: Secondary button style for 'Hide' --- */
+        .submit-btn.secondary {
+          background-color: #e0e0e0;
+          color: black;
+          margin-top: 15px; /* Add space above the hide button */
+        }
+        .submit-btn.secondary:hover {
+          background-color: #c7c7c7;
+        }
+        
         .error {
           color: red;
           margin-top: 10px;
@@ -383,6 +414,16 @@ export default function AdminPage({ user, usernames, allUsers }: {
           height: 60px;
         }
         
+        /* --- NEW: Pinpad animation class --- */
+        .pin-pad-fade-out {
+          animation: fadeOut 0.5s ease-out forwards;
+        }
+        
+        /* --- NEW: Credentials table animation class --- */
+        .credentials-container {
+          animation: fadeInTable 0.8s ease-out;
+        }
+        
         /* --- NEW COLLAPSIBLE DROPDOWN STYLES --- */
         .collapsible-container {
           /* max-width: 800px; <-- No longer needed, container handles it */
@@ -472,7 +513,7 @@ export default function AdminPage({ user, usernames, allUsers }: {
         <div style={{ marginTop: '40px' }}>
           {isUnlocked ? (
             // --- USER TABLE (Visible only if unlocked) ---
-            <>
+            <div className="credentials-container"> {/* <-- NEW: Animation wrapper */}
               <h2 style={{ textAlign: 'center', marginTop: '40px' }}>All User Credentials</h2>
               <table className="user-table">
                 <thead>
@@ -492,7 +533,16 @@ export default function AdminPage({ user, usernames, allUsers }: {
                   ))}
                 </tbody>
               </table>
-            </>
+              
+              {/* --- NEW: Hide Credentials Button --- */}
+              <button 
+                className="submit-btn secondary" 
+                onClick={() => setIsUnlocked(false)}
+              >
+                Hide Credentials
+              </button>
+            </div>
+            
           ) : (
             // --- VIEW CREDENTIALS BUTTON (Visible only if locked) ---
             <div style={{ marginBottom: '20px' }}> {/* Added wrapper for spacing */}
@@ -530,14 +580,17 @@ export default function AdminPage({ user, usernames, allUsers }: {
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               <button className="modal-close-btn" onClick={closeModal}>&times;</button>
               
-              <PinPad
-                title="Enter Admin PIN"
-                pinLength={ADMIN_PASSWORD.length}
-                pin={modalPassword}
-                setPin={setModalPassword}
-                onPinComplete={handlePinComplete}
-              />
-              {modalError && <p className="error" style={{ marginTop: '15px' }}>{modalError}</p>}
+              {/* --- NEW: Wrapper for pinpad fade-out animation --- */}
+              <div className={isUnlocking ? 'pin-pad-fade-out' : ''}>
+                <PinPad
+                  title="Enter Admin PIN"
+                  pinLength={ADMIN_PASSWORD.length}
+                  pin={modalPassword}
+                  setPin={setModalPassword}
+                  onPinComplete={handlePinComplete}
+                />
+                {modalError && <p className="error" style={{ marginTop: '15px' }}>{modalError}</p>}
+              </div>
 
             </div>
           </div>
