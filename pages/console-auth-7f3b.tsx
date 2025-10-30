@@ -24,17 +24,6 @@ type PinPadProps = {
 const PinPad: React.FC<PinPadProps> = ({ title, pinLength, pin, setPin, onPinComplete }) => {
   const containerRef = useRef<HTMLDivElement>(null); // Ref for keyboard focus
   
-  // --- MODIFICATION: This useEffect is no longer needed ---
-  // We will call onPinComplete directly from handleNumClick
-  /*
-  useEffect(() => {
-    if (pin.length === pinLength) {
-      onPinComplete(pin);
-    }
-  }, [pin, pinLength, onPinComplete]);
-  */
-  // --- END MODIFICATION ---
-
   // Effect to auto-focus the container for keyboard input when it appears
   useEffect(() => {
     containerRef.current?.focus();
@@ -707,4 +696,4 @@ export const getServerSideProps = withIronSessionSsr(
     }
   },
   sessionOptions
-)123456
+)
