@@ -24,23 +24,35 @@ type PinPadProps = {
 const PinPad: React.FC<PinPadProps> = ({ title, pinLength, pin, setPin, onPinComplete }) => {
   const containerRef = useRef<HTMLDivElement>(null); // Ref for keyboard focus
   
-  // Effect to check for pin completion
+  // --- MODIFICATION: This useEffect is no longer needed ---
+  // We will call onPinComplete directly from handleNumClick
+  /*
   useEffect(() => {
     if (pin.length === pinLength) {
       onPinComplete(pin);
     }
   }, [pin, pinLength, onPinComplete]);
+  */
+  // --- END MODIFICATION ---
 
   // Effect to auto-focus the container for keyboard input when it appears
   useEffect(() => {
     containerRef.current?.focus();
   }, []);
 
+  // --- MODIFICATION: handleNumClick now calls onPinComplete ---
   const handleNumClick = (num: string) => {
     if (pin.length < pinLength) {
-      setPin(pin + num);
+      const newPin = pin + num; // Create the new pin
+      setPin(newPin); // Set the state
+      
+      // Check if this new pin is the final one
+      if (newPin.length === pinLength) {
+        onPinComplete(newPin); // Call this IMMEDIATELY
+      }
     }
   };
+  // --- END MODIFICATION ---
 
   const handleDelete = () => {
     setPin(pin.slice(0, -1));
@@ -169,7 +181,6 @@ export default function AdminPage({ user, usernames, allUsers }: {
       setIsUnlocking(true) // Start the fade-out animation
       
       // Wait for animation to finish, then swap content
-      // MODIFICATION: Changed from 500ms to 600ms to prevent race condition
       setTimeout(() => {
         setIsUnlocked(true)   // Show the table
         setIsModalOpen(false) // Hide the modal
@@ -610,95 +621,3 @@ export default function AdminPage({ user, usernames, allUsers }: {
             View password reset requests
             <span className={`arrow ${isResetDropdownOpen ? 'open' : ''}`}>&gt;</span>
           </button>
-          <div className={`collapsible-content ${isResetDropdownOpen ? 'open' : ''}`}>
-            <div className="iframe-container">
-              <iframe 
-                src={resetSheetUrl}
-                title="Password Reset Responses"
-              >
-                Loading…
-              </iframe>
-            </div>
-          </div>
-        </div>
-        
-        {/* --- UPDATED PASSWORD MODAL (with animation) --- */}
-        {isModalOpen && (
-          <div className="modal-overlay" onClick={closeModal}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <button className="modal-close-btn" onClick={closeModal}>&times;</button>
-              
-              {/* --- MODIFICATION ---
-                Wrapper now handles success fade-out (isUnlocking) 
-                AND error shake (isError)
-              */}
-              <div className={`
-                ${isUnlocking ? 'pin-pad-fade-out' : ''}
-                ${isError ? 'pin-pad-error' : ''}
-              `}>
-                <PinPad
-                  title="Enter Admin PIN"
-                  pinLength={ADMIN_PASSWORD.length}
-                  pin={modalPassword}
-                  setPin={setModalPassword}
-                  onPinComplete={handlePinComplete}
-                />
-                {/* --- MODIFICATION ---
-                  Error message now has its own fade-out animation
-                */}
-                {modalError && (
-                  <p 
-                    className={`error ${isErrorFading ? 'error-fade-out' : ''}`} 
-                    style={{ marginTop: '15px' }}
-                  >
-                    {modalError}
-                  </p>
-                )}
-              </div>
-
-            </div>
-          </div>
-        )}
-        {/* --- END NEW MODAL --- */}
-        
-      </div>
-    </div>
-  )
-}
-
-// --- SERVER SIDE PROPS (No changes) ---
-export const getServerSideProps = withIronSessionSsr(
-  async function ({ req, res }) {
-    const user = req.session.user
-
-    if (user === undefined || user.isAdmin !== true) {
-      res.setHeader('location', '/login')
-      res.statusCode = 302
-      res.end()
-      return {
-        props: {
-          user: { isLoggedIn: false, username: '', redirectUrl: '', isAdmin: false } as SessionData,
-          usernames: [],
-          allUsers: [],
-        },
-      }
-    }
-    
-    const allUsers = Array.from(validCredentials.entries()).map(([username, data]) => ({
-      username: username,
-      password: data.pwd,
-      redirect: data.redirect || DEFAULT_REDIRECT_URL
-    }));
-
-    const usernames = allUsers.map(u => u.username);
-
-    return {
-      props: { 
-        user: req.session.user,
-        usernames: usernames,
-        allUsers: allUsers,
-      },
-    }
-  },
-  sessionOptions
-)
