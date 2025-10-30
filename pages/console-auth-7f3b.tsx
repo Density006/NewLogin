@@ -1,4 +1,4 @@
-// pages/admin.tsx
+// pages/console-auth-7f3b.tsx
 import React, { useState, useEffect, useRef } from 'react' // Import useRef
 import { useRouter } from 'next/router' // <-- 1. IMPORTED ROUTER
 import { withIronSessionSsr } from 'iron-session/next'
@@ -207,7 +207,7 @@ export default function AdminPage({ user, usernames, allUsers }: {
           padding: 0 10px;
         }
         .login-form {
-          max-width: 400px;
+          /* --- THIS LINE WAS REMOVED: max-width: 400px; --- */
           margin: 40px auto;
           padding: 20px;
           border: 1px solid #ccc;
