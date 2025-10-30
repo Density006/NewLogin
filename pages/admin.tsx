@@ -1,5 +1,6 @@
 // pages/admin.tsx
 import React, { useState, useEffect, useRef } from 'react' // Import useRef
+import { useRouter } from 'next/router' // <-- 1. IMPORTED ROUTER
 import { withIronSessionSsr } from 'iron-session/next'
 import { sessionOptions, SessionData } from 'lib/session'
 import { validCredentials, DEFAULT_REDIRECT_URL } from 'lib/users'
@@ -106,6 +107,7 @@ export default function AdminPage({ user, usernames, allUsers }: {
   usernames: string[], 
   allUsers: UserTableEntry[] 
 }) {
+  const router = useRouter() // <-- 3. INITIALIZED ROUTER
   const [impersonateError, setImpersonateError] = useState('')
   
   // --- State for Modal and Table ---
@@ -220,6 +222,22 @@ export default function AdminPage({ user, usernames, allUsers }: {
           color: red;
           margin-top: 10px;
         }
+        
+        /* --- 2. ADDED RETURN BUTTON STYLE --- */
+        .return-btn {
+          padding: 8px 16px;
+          background-color: #0070f3;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          font-size: 14px;
+          cursor: pointer;
+          margin-bottom: 20px;
+        }
+        .return-btn:hover {
+          background-color: #005bb5;
+        }
+        /* --- END RETURN BUTTON STYLE --- */
         
         .user-table {
           width: 100%;
@@ -339,8 +357,17 @@ export default function AdminPage({ user, usernames, allUsers }: {
       `}</style>
       
       <div className="container">
-        <h1 style={{ textAlign: 'center' }}>Admin Panel</h1>
-        <h2 style={{ textAlign: 'center' }}>Welcome, {user.username}!</h2>
+      
+        {/* --- 3. ADDED BUTTON AND WRAPPER --- */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <h1 style={{ textAlign: 'center', flexGrow: 1, margin: 0, paddingBottom: '20px' }}>Admin Panel</h1>
+          <button className="return-btn" onClick={() => router.push('/login')}>
+            Return to Login
+          </button>
+        </div>
+        {/* --- END OF ADDED BUTTON --- */}
+
+        <h2 style={{ textAlign: 'center', marginTop: 0 }}>Welcome, {user.username}!</h2>
         
         {/* --- Impersonation Form --- */}
         <form className="login-form" onSubmit={handleImpersonateSubmit}>
