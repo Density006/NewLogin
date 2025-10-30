@@ -1,13 +1,31 @@
 // pages/login.tsx
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react' // <-- NEW: Imported useEffect
 import { useRouter } from 'next/router'
 
 // This is a simple form component
 function LoginForm() {
   const router = useRouter()
   const [errorMsg, setErrorMsg] = useState('')
-  const [isModalOpen, setIsModalOpen] = useState(false) // <-- ADDED for modal
+  const [isModalOpen, setIsModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false) // <-- ADDED for loading state
+
+  // --- NEW: Backtick key listener ---
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === '`') {
+        router.push('/admin');
+      }
+    }
+
+    // Add event listener
+    window.addEventListener('keydown', handleKeyDown);
+
+    // Clean up event listener on component unmount
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [router]); // Add router to dependency array
+
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -67,7 +85,6 @@ function LoginForm() {
         /* --- ADDED: Loading state style --- */
         .login-form.loading {
           opacity: 0.7;
-          pointer-events: none;
         }
         
         .form-group {
@@ -85,6 +102,13 @@ function LoginForm() {
           border: 1px solid #ddd;
           border-radius: 4px;
         }
+        
+        /* --- NEW: Style for disabled inputs --- */
+        .form-group input:disabled {
+          background-color: #f0f0f0;
+          cursor: not-allowed;
+        }
+
         .submit-btn {
           width: 100%;
           padding: 10px;
@@ -186,17 +210,30 @@ function LoginForm() {
       
       {/* --- LOGIN FORM --- */}
       <form className={`login-form ${isLoading ? 'loading' : ''}`} onSubmit={handleSubmit}>
-        <fieldset disabled={isLoading}>
-          <div className="form-group">
-            <label htmlFor="username">Username</label>
-            <input id="username" name="username" type="text" required />
-          </div>
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input id="password" name="password" type="password" required />
-          </div>
-        </fieldset>
         
+        {/* --- CHANGED: Removed fieldset, added disabled prop to inputs --- */}
+        <div className="form-group">
+          <label htmlFor="username">Username</label>
+          <input 
+            id="username" 
+            name="username" 
+            type="text" 
+            required 
+            disabled={isLoading} 
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="password">Password</label>
+          <input 
+            id="password" 
+            name="password" 
+            type="password" 
+            required 
+            disabled={isLoading} 
+          />
+        </div>
+        {/* --- END OF CHANGE --- */}
+
         <button className="submit-btn" type="submit" disabled={isLoading}>
           {isLoading ? 'Signing In...' : 'Login'}
         </button>
