@@ -31,11 +31,7 @@ export const validCredentials = new Map<string, UserCredentials>([
   }],
   ['4dmin', { pwd: 'NATE', redirect: '/console-auth-7f3b' }], // Redirect to the admin page
   ['Jimmy', { pwd: 'germanleader' }],
-  ['Test', {
-    pwd: 'Nate',
-    validFrom: '2025-10-28 14:15', // Example WA Time
-    validUntil: '2025-10-28 14:22', // Example WA Time
-  }],
+  ['Test', { pwd: 'Nate' }],
   ['Jamesmann', { pwd: 'wisehelp88' }],
   ['Duke', { pwd: 'danby', redirect: DISALLOWED_REDIRECT_URL }],
   ['add user', { pwd: ' ', redirect: GITHUB_REDIRECT_URL }],
