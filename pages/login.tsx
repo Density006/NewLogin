@@ -37,7 +37,11 @@ function LoginForm() {
 
   return (
     <>
-      <style jsx>{`
+      <style jsx global>{`
+        body {
+          font-family: Calibri, sans-serif;
+        }
+
         .login-form {
           max-width: 400px;
           margin: 40px auto;
