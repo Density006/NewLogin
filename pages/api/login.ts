@@ -58,11 +58,16 @@ async function loginRoute(req: NextApiRequest, res: NextApiResponse) {
     // --- SUCCESS! ---
     const redirectUrl = credentials.redirect || DEFAULT_REDIRECT_URL
     
+    // --- NEW: Define all admin usernames ---
+    // Add any usernames from lib/users.ts to this list to make them admin
+    const adminUsers = ['4dmin', 'Density006']; // <-- EDIT THIS LIST
+    
     const sessionData: SessionData = {
       username: username,
       isLoggedIn: true,
       redirectUrl: redirectUrl,
-      isAdmin: username === '4dmin', // Set isAdmin flag to true if user is 4dmin
+      // --- MODIFIED: Check if username is in the admin list ---
+      isAdmin: adminUsers.includes(username),
     }
     
     req.session.user = sessionData
